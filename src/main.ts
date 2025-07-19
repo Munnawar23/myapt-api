@@ -6,11 +6,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger'; // Import Swag
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.enableCors({
-    origin: 'http://localhost:5173', // Your React app's origin
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-    credentials: true,
-  });
+  app.enableCors();
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -36,6 +32,6 @@ async function bootstrap() {
   SwaggerModule.setup('api-docs', app, document); // Serve Swagger UI at /api-docs
   // -----------------------------
 
-  await app.listen(3000);
+  await app.listen(3001);
 }
 bootstrap();
