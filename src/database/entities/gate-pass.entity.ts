@@ -4,14 +4,27 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
+  ManyToMany,
+  JoinTable,
+  OneToMany,
+  Index,
 } from 'typeorm';
 import { User } from './user.entity';
+import { Flat } from './flat.entity';
+import { VisitorLog } from './visitor-log.entity';
 
+// ... (VisitorType and GatePassStatus enums remain the same) ...
+export enum VisitorType {
+  GUEST = 'GUEST',
+  VENDOR = 'VENDOR',
+  WORKER = 'WORKER',
+}
 export enum GatePassStatus {
-  ACTIVE = 'ACTIVE', // The pass is valid for an upcoming visit
-  USED = 'USED', // The guest has entered
-  EXPIRED = 'EXPIRED', // The visit date has passed without use
-  CANCELED = 'CANCELED', // The tenant canceled the pass
+  PENDING_APPROVAL = 'PENDING_APPROVAL',
+  ACTIVE = 'ACTIVE',
+  USED = 'USED',
+  EXPIRED = 'EXPIRED',
+  CANCELED = 'CANCELED',
 }
 
 @Entity('gate_passes')
@@ -19,18 +32,33 @@ export class GatePass {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  // The tenant who created the pass
-  @Column({ type: 'uuid' })
+  @Index({ unique: true })
+  @Column({ unique: true, length: 10 })
+  pass_code: string;
+
+  @Column({ type: 'uuid', nullable: true })
   requester_id: string;
 
+  // --- VISITOR DETAILS MOVED BACK HERE ---
   @Column()
-  guest_name: string;
+  visitor_name: string;
 
-  @Column({ nullable: true })
-  guest_contact_number: string;
+  @Index() // Add an index for faster searching by mobile number
+  @Column()
+  visitor_contact_number: string;
+  // ------------------------------------
+
+  @Column({ type: 'enum', enum: VisitorType })
+  visitor_type: VisitorType;
+
+  @Column()
+  visit_purpose: string;
 
   @Column('timestamp with time zone')
-  visit_date: Date;
+  valid_from: Date;
+
+  @Column('timestamp with time zone')
+  valid_until: Date;
 
   @Column({
     type: 'enum',
@@ -39,7 +67,20 @@ export class GatePass {
   })
   status: GatePassStatus;
 
-  @ManyToOne(() => User, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'requester_id' })
   requester: User;
+
+  // --- REMOVED LINK TO VISITOR ENTITY ---
+
+  @ManyToMany(() => Flat, { cascade: true })
+  @JoinTable({
+    name: 'gate_pass_flats',
+    joinColumn: { name: 'gate_pass_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'flat_id', referencedColumnName: 'id' },
+  })
+  destination_flats: Flat[];
+
+  @OneToMany(() => VisitorLog, (log) => log.gate_pass)
+  logs: VisitorLog[];
 }

@@ -11,6 +11,7 @@ import { UsersAdminModule } from './users/users.module';
 import { ParkingAdminModule } from './parking/parking.module';
 import { SlotsAdminModule } from './slots/slots.module';
 import { SocietiesAdminModule } from './societies/societies.module';
+import { GatePassesAdminModule } from './gate-passes/gate-passes.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { SocietiesAdminModule } from './societies/societies.module';
     ParkingAdminModule,
     SlotsAdminModule,
     SocietiesAdminModule,
+    GatePassesAdminModule,
   ],
 })
 export class AdminModule {}

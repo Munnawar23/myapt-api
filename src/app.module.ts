@@ -41,7 +41,7 @@ import { SocietiesModule } from './societies/societies.module';
 import { SocietyAdminModule } from './society-admin/society-admin.module';
 import { AnnouncementsAdminModule } from './admin/announcements/announcements.module';
 import { AnnouncementsModule } from './announcements/announcements.module';
-
+import { VisitorLog } from './database/entities/visitor-log.entity';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -75,6 +75,7 @@ import { AnnouncementsModule } from './announcements/announcements.module';
         ParkingRequest,
         AmenitySlot,
         Society,
+        VisitorLog,
       ],
       synchronize: true,
     }),
