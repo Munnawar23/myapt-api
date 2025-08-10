@@ -47,11 +47,11 @@ import { VisitorLog } from './database/entities/visitor-log.entity';
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: '35.202.54.187',
+      host: 'localhost',
       port: 5432,
       username: 'postgres',
-      password: '3102aaC:C805MCnL',
-      database: 'apartment_db',
+      password: 'postgres',
+      database: 'my_apt_db',
       entities: [
         User,
         Role,
@@ -104,4 +104,4 @@ import { VisitorLog } from './database/entities/visitor-log.entity';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

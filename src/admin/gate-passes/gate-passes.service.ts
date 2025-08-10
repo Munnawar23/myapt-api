@@ -22,7 +22,7 @@ export class GatePassesAdminService {
   ) {}
 
   private generatePassCode(): string {
-    const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const alphabet = '0123456789';
     const nanoid = customAlphabet(alphabet, 10);
     return nanoid();
   }

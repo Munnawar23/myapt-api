@@ -13,6 +13,7 @@ import { CreateGatePassDto } from './dto/create-gate-pass.dto';
 import { UpdateGatePassDto } from './dto/update-gate-pass.dto';
 import { User } from 'src/database/entities/user.entity';
 import { customAlphabet } from 'nanoid';
+import { PassAction } from './dto/respond-to-pass.dto';
 
 @Injectable()
 export class GatePassesService {
@@ -25,7 +26,7 @@ export class GatePassesService {
   ) {}
 
   private generatePassCode(): string {
-    const alphabet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const alphabet = '0123456789';
     const nanoid = customAlphabet(alphabet, 10);
     return nanoid();
   }
@@ -64,12 +65,82 @@ export class GatePassesService {
     return this.gatePassesRepository.save(newGatePass);
   }
 
+  async findPendingForUser(userId: string): Promise<GatePass[]> {
+    // We need to find passes that are PENDING_APPROVAL and are destined for the user's flat.
+    const user = await this.usersRepository.findOne({
+      where: { id: userId },
+      relations: ['owned_flat'],
+    });
+
+    if (!user || !user.owned_flat) {
+      // If user has no flat, they can't have any pending passes.
+      return [];
+    }
+
+    // Use QueryBuilder to find passes linked to the user's flat
+    return this.gatePassesRepository
+      .createQueryBuilder('gatepass')
+      .innerJoin('gatepass.destination_flats', 'flat')
+      .where('flat.id = :flatId', { flatId: user.owned_flat.id })
+      .andWhere('gatepass.status = :status', {
+        status: GatePassStatus.PENDING_APPROVAL,
+      })
+      .getMany();
+  }
+
+  // Method for a tenant to approve or deny a pass
+  async respond(
+    passId: string,
+    userId: string,
+    action: PassAction,
+  ): Promise<GatePass> {
+    const pass = await this.gatePassesRepository.findOne({
+      where: { id: passId, status: GatePassStatus.PENDING_APPROVAL },
+      relations: ['destination_flats'],
+    });
+
+    if (!pass) {
+      throw new NotFoundException(
+        `Pending gate pass with ID ${passId} not found.`,
+      );
+    }
+
+    // Verify that this user is associated with one of the destination flats
+    const user = await this.usersRepository.findOne({
+      where: { id: userId },
+      relations: ['owned_flat'],
+    });
+
+    const isAuthorized = pass.destination_flats.some(
+      (flat) => flat.id === user?.owned_flat?.id,
+    );
+
+    if (!isAuthorized) {
+      throw new ForbiddenException(
+        'You are not authorized to respond to this gate pass.',
+      );
+    }
+
+    // Update the status based on the action
+    if (action === PassAction.APPROVE) {
+      pass.status = GatePassStatus.ACTIVE;
+      // As per our logic, the first tenant to approve makes the pass active.
+      // We also update the requester to be the tenant who approved it.
+      pass.requester_id = userId;
+    } else {
+      // action === PassAction.DENY
+      pass.status = GatePassStatus.CANCELED; // Or a new 'DENIED' status if you prefer
+    }
+
+    return this.gatePassesRepository.save(pass);
+  }
+
   // findForUser is now simpler as it doesn't need to join the visitor table
   async findForUser(userId: string): Promise<GatePass[]> {
     const findOptions: FindManyOptions<GatePass> = {
       where: { requester_id: userId },
       relations: ['destination_flats'],
-      order: { valid_from: 'DESC' },
+      order: { createdAt: 'DESC' },
     };
     return this.gatePassesRepository.find(findOptions);
   }

@@ -8,6 +8,7 @@ import {
   JoinTable,
   OneToMany,
   Index,
+  CreateDateColumn,
 } from 'typeorm';
 import { User } from './user.entity';
 import { Flat } from './flat.entity';
@@ -25,6 +26,7 @@ export enum GatePassStatus {
   USED = 'USED',
   EXPIRED = 'EXPIRED',
   CANCELED = 'CANCELED',
+  WAIT_IN_LOBBY = 'WAIT_IN_LOBBY',
 }
 
 @Entity('gate_passes')
@@ -80,6 +82,9 @@ export class GatePass {
     inverseJoinColumn: { name: 'flat_id', referencedColumnName: 'id' },
   })
   destination_flats: Flat[];
+
+  @CreateDateColumn({ type: 'timestamp with time zone' })
+  createdAt: Date;
 
   @OneToMany(() => VisitorLog, (log) => log.gate_pass)
   logs: VisitorLog[];
