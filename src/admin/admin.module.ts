@@ -12,6 +12,8 @@ import { ParkingAdminModule } from './parking/parking.module';
 import { SlotsAdminModule } from './slots/slots.module';
 import { SocietiesAdminModule } from './societies/societies.module';
 import { GatePassesAdminModule } from './gate-passes/gate-passes.module';
+import { StaffAdminModule } from './staff/staff.module';
+import { DeliveriesAdminModule } from './deliveries/deliveries.module';
 
 @Module({
   imports: [
@@ -28,6 +30,8 @@ import { GatePassesAdminModule } from './gate-passes/gate-passes.module';
     SlotsAdminModule,
     SocietiesAdminModule,
     GatePassesAdminModule,
+    StaffAdminModule,
+    DeliveriesAdminModule,
   ],
 })
 export class AdminModule {}

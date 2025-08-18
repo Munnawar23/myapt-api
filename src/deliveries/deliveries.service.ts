@@ -6,10 +6,13 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   Delivery,
+  DeliveryCreator,
   DeliveryStatus,
 } from 'src/database/entities/delivery.entity';
-import { Repository } from 'typeorm';
+import { FindManyOptions, FindOptionsWhere, Repository } from 'typeorm';
 import { DeliveryAction } from './dto/respond-to-delivery.dto';
+import { CreateDeliveryDto } from './dto/create-delivery.dto';
+import { DeliveryQueryDto } from './dto/delivery-query.dto';
 
 @Injectable()
 export class DeliveriesService {
@@ -19,7 +22,7 @@ export class DeliveriesService {
   ) {}
 
   // Find all deliveries for a user, defaulting to only PENDING_APPROVAL
-  async findForUser(userId: string): Promise<Delivery[]> {
+  async findPendingForUser(userId: string): Promise<Delivery[]> {
     return this.deliveriesRepository.find({
       where: {
         resident_id: userId,
@@ -29,6 +32,46 @@ export class DeliveriesService {
         arrival_time: 'DESC',
       },
     });
+  }
+
+  async findForUser(
+    userId: string,
+    query: DeliveryQueryDto,
+  ): Promise<Delivery[]> {
+    // 1. Start building the 'where' clause.
+    // We explicitly type it to ensure correctness.
+    const whereClause: FindOptionsWhere<Delivery> = {
+      resident_id: userId,
+    };
+
+    // 2. If a status filter is provided, add it to the clause.
+    if (query.status) {
+      whereClause.status = query.status;
+    }
+
+    // 3. Construct the final options object with the completed 'where' clause.
+    const findOptions: FindManyOptions<Delivery> = {
+      where: whereClause,
+      order: {
+        arrival_time: 'DESC',
+      },
+    };
+
+    return this.deliveriesRepository.find(findOptions);
+  }
+
+  async create(
+    userId: string,
+    createDto: CreateDeliveryDto,
+  ): Promise<Delivery> {
+    const newDelivery = this.deliveriesRepository.create({
+      ...createDto,
+      resident_id: userId,
+      status: DeliveryStatus.EXPECTED, // Pre-registered deliveries are 'EXPECTED'
+      created_by: DeliveryCreator.TENANT, // Mark that the tenant created this
+    });
+
+    return this.deliveriesRepository.save(newDelivery);
   }
 
   // Respond to a specific delivery

@@ -42,6 +42,9 @@ import { SocietyAdminModule } from './society-admin/society-admin.module';
 import { AnnouncementsAdminModule } from './admin/announcements/announcements.module';
 import { AnnouncementsModule } from './announcements/announcements.module';
 import { VisitorLog } from './database/entities/visitor-log.entity';
+import { Staff } from './database/entities/staff.entity';
+import { StaffModule } from './staff/staff.module';
+import { StaffLog } from './database/entities/staff-log.entity';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -76,6 +79,8 @@ import { VisitorLog } from './database/entities/visitor-log.entity';
         AmenitySlot,
         Society,
         VisitorLog,
+        Staff,
+        StaffLog,
       ],
       synchronize: true,
     }),
@@ -96,6 +101,7 @@ import { VisitorLog } from './database/entities/visitor-log.entity';
     SocietiesModule,
     SocietyAdminModule,
     AnnouncementsModule,
+    StaffModule,
   ],
   providers: [
     {

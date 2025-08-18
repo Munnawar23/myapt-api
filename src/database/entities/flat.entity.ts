@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { User } from './user.entity';
 import { FamilyMember } from './family-member.entity';
+import { Staff } from './staff.entity';
 
 @Entity('flats')
 export class Flat {
@@ -33,4 +34,7 @@ export class Flat {
   // A flat can have many family members
   @OneToMany(() => FamilyMember, (member) => member.flat)
   family_members: FamilyMember[];
+
+  @OneToMany(() => Staff, (staff) => staff.flat)
+  staff: Staff[];
 }

@@ -5,14 +5,23 @@ import {
   ManyToOne,
   JoinColumn,
   CreateDateColumn,
+  Index,
 } from 'typeorm';
 import { User } from './user.entity';
 
 export enum DeliveryStatus {
-  PENDING_APPROVAL = 'PENDING_APPROVAL', // Awaiting tenant action
+  EXPECTED = 'EXPECTED', // Tenant has pre-registered this delivery
+  PENDING_APPROVAL = 'PENDING_APPROVAL', // Guard created, awaiting tenant action
   APPROVED = 'APPROVED', // Tenant approved, allowed entry
   DENIED = 'DENIED', // Tenant denied entry
-  COMPLETED = 'COMPLETED', // Parcel delivered
+  COMPLETED = 'COMPLETED', // Parcel delivered/handed over
+  CANCELED = 'CANCELED', // Canceled by tenant
+}
+
+// To track who created the record
+export enum DeliveryCreator {
+  TENANT = 'TENANT',
+  GUARD = 'GUARD',
 }
 
 @Entity('deliveries')
@@ -20,16 +29,20 @@ export class Delivery {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  // The resident/tenant for whom the delivery is intended
   @Column({ type: 'uuid' })
   resident_id: string;
 
-  // Details entered by security
   @Column()
   company_name: string; // e.g., 'Amazon', 'FedEx', 'Zomato'
 
+  // NEW: A searchable Order ID provided by the tenant
+  @Index()
   @Column({ nullable: true })
-  tracking_id: string; // Optional parcel tracking ID
+  order_id: string;
+
+  // NEW: An optional OTP for verification
+  @Column({ nullable: true })
+  otp: string;
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
   arrival_time: Date;
@@ -37,9 +50,16 @@ export class Delivery {
   @Column({
     type: 'enum',
     enum: DeliveryStatus,
-    default: DeliveryStatus.PENDING_APPROVAL,
+    default: DeliveryStatus.EXPECTED,
   })
   status: DeliveryStatus;
+
+  // NEW: Track who created this entry
+  @Column({
+    type: 'enum',
+    enum: DeliveryCreator,
+  })
+  created_by: DeliveryCreator;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'resident_id' })

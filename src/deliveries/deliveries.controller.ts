@@ -6,12 +6,16 @@ import {
   Req,
   Param,
   ParseUUIDPipe,
+  Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { DeliveriesService } from './deliveries.service';
 import { RespondToDeliveryDto } from './dto/respond-to-delivery.dto';
+import { CreateDeliveryDto } from './dto/create-delivery.dto';
+import { DeliveryQueryDto } from './dto/delivery-query.dto';
 
 @ApiTags('Deliveries')
+@ApiBearerAuth()
 @Controller('deliveries')
 export class DeliveriesController {
   constructor(private readonly deliveriesService: DeliveriesService) {}
@@ -21,9 +25,25 @@ export class DeliveriesController {
     summary: 'Get pending deliveries for the authenticated user',
   })
   @ApiBearerAuth()
-  findForUser(@Req() req) {
+  findPendingForUser(@Req() req) {
     const userId = req.user.id;
-    return this.deliveriesService.findForUser(userId);
+    return this.deliveriesService.findPendingForUser(userId);
+  }
+
+  @Post()
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Pre-register an expected delivery' })
+  create(@Req() req, @Body() createDto: CreateDeliveryDto) {
+    const userId = req.user.id;
+    return this.deliveriesService.create(userId, createDto);
+  }
+
+  @Get()
+  @ApiOperation({ summary: 'Get delivery history for the authenticated user' })
+  findForUser(@Req() req, @Query() query: DeliveryQueryDto) {
+    // Use the DTO
+    const userId = req.user.id;
+    return this.deliveriesService.findForUser(userId, query);
   }
 
   @Post(':id/respond')
