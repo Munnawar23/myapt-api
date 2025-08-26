@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
@@ -19,7 +20,7 @@ export class DeliveriesService {
   constructor(
     @InjectRepository(Delivery)
     private deliveriesRepository: Repository<Delivery>,
-  ) {}
+  ) { }
 
   // Find all deliveries for a user, defaulting to only PENDING_APPROVAL
   async findPendingForUser(userId: string): Promise<Delivery[]> {
@@ -79,6 +80,7 @@ export class DeliveriesService {
     userId: string,
     deliveryId: string,
     action: DeliveryAction,
+    otp?: string, // Add optional OTP parameter
   ): Promise<Delivery> {
     const delivery = await this.deliveriesRepository.findOneBy({
       id: deliveryId,
@@ -95,6 +97,12 @@ export class DeliveriesService {
       );
     }
 
+    // You might want to add business logic here.
+    // For example, perhaps OTP can only be updated if the delivery is currently PENDING_APPROVAL
+    if (delivery.status !== DeliveryStatus.PENDING_APPROVAL) {
+      throw new BadRequestException('Cannot respond to this delivery in its current state.');
+    }
+
     // Update the status based on the action
     if (action === DeliveryAction.APPROVE) {
       delivery.status = DeliveryStatus.APPROVED;
@@ -102,6 +110,35 @@ export class DeliveriesService {
       delivery.status = DeliveryStatus.DENIED;
     }
 
+    // If an OTP is provided, update it
+    if (otp !== undefined) {
+      delivery.otp = otp;
+    }
+
+    return await this.deliveriesRepository.save(delivery);
+  }
+
+  async updateDeliveryOtp(
+    userId: string,
+    deliveryId: string,
+    otp: string,
+  ): Promise<Delivery> {
+    const delivery = await this.deliveriesRepository.findOneBy({
+      id: deliveryId,
+    });
+
+    if (!delivery) {
+      throw new NotFoundException(`Delivery with ID ${deliveryId} not found.`);
+    }
+
+    // Ensure only the resident who owns the delivery can update its OTP
+    if (delivery.resident_id !== userId) {
+      throw new ForbiddenException(
+        'You are not authorized to update this delivery.',
+      );
+    }
+
+    delivery.otp = otp; // Update the OTP
     return this.deliveriesRepository.save(delivery);
   }
 }

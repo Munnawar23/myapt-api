@@ -7,20 +7,22 @@ import {
   Param,
   ParseUUIDPipe,
   Query,
+  Patch,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { DeliveriesService } from './deliveries.service';
 import { RespondToDeliveryDto } from './dto/respond-to-delivery.dto';
 import { CreateDeliveryDto } from './dto/create-delivery.dto';
 import { DeliveryQueryDto } from './dto/delivery-query.dto';
+import { UpdateDeliveryOtpDto } from './dto/update-delivery-otp.dto';
 
 @ApiTags('Deliveries')
 @ApiBearerAuth()
 @Controller('deliveries')
 export class DeliveriesController {
-  constructor(private readonly deliveriesService: DeliveriesService) {}
+  constructor(private readonly deliveriesService: DeliveriesService) { }
 
-  @Get()
+  @Get('pending')
   @ApiOperation({
     summary: 'Get pending deliveries for the authenticated user',
   })
@@ -59,6 +61,23 @@ export class DeliveriesController {
       userId,
       deliveryId,
       respondDto.action,
+      respondDto.otp,
+    );
+  }
+
+  @Patch(':id/otp')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update the OTP for an existing delivery' })
+  async updateOtp(
+    @Req() req,
+    @Param('id', ParseUUIDPipe) deliveryId: string,
+    @Body() updateOtpDto: UpdateDeliveryOtpDto,
+  ) {
+    const userId = req.user.id;
+    return this.deliveriesService.updateDeliveryOtp(
+      userId,
+      deliveryId,
+      updateOtpDto.otp,
     );
   }
 }
