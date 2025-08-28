@@ -97,11 +97,11 @@ export class DeliveriesService {
       );
     }
 
-    // You might want to add business logic here.
-    // For example, perhaps OTP can only be updated if the delivery is currently PENDING_APPROVAL
-    if (delivery.status !== DeliveryStatus.PENDING_APPROVAL) {
-      throw new BadRequestException('Cannot respond to this delivery in its current state.');
-    }
+    // // You might want to add business logic here.
+    // // For example, perhaps OTP can only be updated if the delivery is currently PENDING_APPROVAL
+    // if (delivery.status !== DeliveryStatus.PENDING_APPROVAL) {
+    //   throw new BadRequestException('Cannot respond to this delivery in its current state.');
+    // }
 
     // Update the status based on the action
     if (action === DeliveryAction.APPROVE) {
