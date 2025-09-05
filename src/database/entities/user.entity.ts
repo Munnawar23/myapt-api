@@ -63,4 +63,7 @@ export class User {
   })
   @JoinColumn({ name: 'society_id' })
   society: Society;
+
+  @Column({ nullable: true, type: 'text' })
+  fcmToken?: string;
 }

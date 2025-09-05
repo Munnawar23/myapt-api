@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   Delivery,
@@ -10,6 +10,7 @@ import { Repository } from 'typeorm';
 import { GuardCreateDeliveryDto } from './dto/guard-create-delivery.dto';
 import { PaginatedResponse } from 'src/common/dto/paginated-response.dto';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { DeliveryAction } from 'src/deliveries/dto/respond-to-delivery.dto';
 
 @Injectable()
 export class DeliveriesAdminService {
@@ -97,4 +98,48 @@ export class DeliveriesAdminService {
     const data = await queryBuilder.getMany();
     return new PaginatedResponse(data, total, limit, query.page);
   }
+
+  async updatedDeliveryStatus(
+      deliveryId: string,
+      status: DeliveryStatus,
+    ): Promise<Delivery> {
+      const delivery = await this.deliveriesRepository.findOneBy({
+        id: deliveryId,
+      });
+  
+      if (!delivery) {
+        throw new NotFoundException(`Delivery with ID ${deliveryId} not found.`);
+      }
+
+      delivery.status = status;
+  
+      // Ensure the user responding is the intended resident
+      // if (delivery.resident_id !== userId) {
+      //   throw new ForbiddenException(
+      //     'You are not authorized to respond to this delivery.',
+      //   );
+      // }
+  
+      // // You might want to add business logic here.
+      // // For example, perhaps OTP can only be updated if the delivery is currently PENDING_APPROVAL
+      // if (delivery.status !== DeliveryStatus.PENDING_APPROVAL) {
+      //   throw new BadRequestException('Cannot respond to this delivery in its current state.');
+      // }
+  
+      // Update the status based on the action
+      // if (action === DeliveryAction.APPROVE) {
+      //   delivery.status = DeliveryStatus.APPROVED;
+      // } else if (action === DeliveryAction.DENY) {
+      //   delivery.status = DeliveryStatus.DENIED;
+      // }
+  
+      // If an OTP is provided, update it
+      // if (otp !== undefined) {
+      //   delivery.otp = otp;
+      // }
+  
+      return await this.deliveriesRepository.save(delivery);
+    }
+
+
 }

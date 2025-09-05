@@ -6,13 +6,15 @@ import { DeliveriesAdminService } from './deliveries.service';
 import { GuardCreateDeliveryDto } from './dto/guard-create-delivery.dto';
 import { SearchDeliveryDto } from './dto/search-delivery.dto';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { DeliveryAction } from 'src/deliveries/dto/respond-to-delivery.dto';
+import { DeliveryStatus } from 'src/database/entities/delivery.entity';
 
 @ApiTags('Admin - Delivery Management')
 @Controller('admin/deliveries')
 @ApiBearerAuth()
 @UseGuards(PermissionGuard)
 export class DeliveriesAdminController {
-  constructor(private readonly deliveriesService: DeliveriesAdminService) {}
+  constructor(private readonly deliveriesService: DeliveriesAdminService) { }
 
   @Post()
   @ApiOperation({
@@ -21,6 +23,12 @@ export class DeliveriesAdminController {
   @RequirePermission('create_guard_delivery') // New permission
   createForApproval(@Body() createDto: GuardCreateDeliveryDto) {
     return this.deliveriesService.createForApproval(createDto);
+  }
+
+  @RequirePermission("update_delivery_status")
+  @Post('update-status')
+  updateDeliveryStatus(@Body() deliveryId: string, deliveryStatus: DeliveryStatus) {
+    return this.deliveriesService.updatedDeliveryStatus(deliveryId, deliveryStatus);
   }
 
   @Get()

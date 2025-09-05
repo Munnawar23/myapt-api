@@ -37,7 +37,7 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 // Apply guards to the entire controller
 @UseGuards(PermissionGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
   @Get()
   @ApiOperation({ summary: "Get the authenticated user's profile" })
@@ -75,6 +75,14 @@ export class UsersController {
       memberId,
       addFamilyMemberDto,
     );
+  }
+
+  @Post('fcm-update')
+  @ApiOperation({ summary: "Update the authenticated user's FCM token" })
+  @ApiResponse({ status: 200, type: User })
+  @ApiBearerAuth()
+  async updateFcmToken(@Req() req, @Body() fcmToken: string) {
+    return await this.usersService.updateFcmToken(req.user.id, fcmToken);
   }
 
   @Delete('family-members/:memberId')

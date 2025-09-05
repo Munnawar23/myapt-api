@@ -27,7 +27,7 @@ import { CreateAdminUserDto } from './dto/create-admin-user.dto';
 @UseGuards(PermissionGuard)
 @Controller('admin/users')
 export class UsersAdminController {
-  constructor(private readonly usersService: UsersAdminService) {}
+  constructor(private readonly usersService: UsersAdminService) { }
 
   @Post()
   @ApiOperation({
@@ -65,10 +65,17 @@ export class UsersAdminController {
     return this.usersService.updateUser(userId, updateUserDto, req.user);
   }
 
+
+  @Post(':userId/update-fcm-token')
+  @ApiOperation({ summary: "Update a user's FCM token" })
+  @RequirePermission('update_user')
+  updateFcmToken(@Param('userId', ParseUUIDPipe) userId: string, @Body() fcmToken: string, @Request() req) {
+    return this.usersService.updateFcmToken(userId, fcmToken, req.user.id);
+  }
+
   @Delete(':userId')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete a user' })
-  @RequirePermission('delete_user')
+  @ApiOperation({ summary: 'Delete a user' }) @RequirePermission('delete_user')
   remove(@Param('userId', ParseUUIDPipe) userId: string, @Request() req) {
     return this.usersService.removeUser(userId, req.user);
   }

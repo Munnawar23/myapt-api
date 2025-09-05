@@ -19,7 +19,7 @@ export class UsersService {
     private usersRepository: Repository<User>,
     @InjectRepository(FamilyMember)
     private familyMembersRepository: Repository<FamilyMember>,
-  ) {}
+  ) { }
 
   async getFullProfile(userId: string): Promise<User> {
     const user = await this.usersRepository.findOne({
@@ -69,6 +69,17 @@ export class UsersService {
     // This is safer than a raw update as it checks if the entity exists first.
 
     return this.getFullProfile(userId);
+  }
+
+  async updateFcmToken(userId: string, fcmToken: string): Promise<User> {
+    const user = await this.findOneById(userId);
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    user.fcmToken = fcmToken;
+    return this.usersRepository.save(user);
   }
 
   async addFamilyMember(

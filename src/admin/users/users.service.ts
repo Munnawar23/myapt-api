@@ -25,7 +25,7 @@ export class UsersAdminService {
     @InjectRepository(FamilyMember)
     private familyMembersRepository: Repository<FamilyMember>,
     @InjectRepository(Role) private roleRepository: Repository<Role>,
-  ) {}
+  ) { }
 
   private checkAdminSociety(adminUser: User) {
     if (!adminUser.society_id) {
@@ -111,6 +111,18 @@ export class UsersAdminService {
     delete user.password_hash;
     return user;
   }
+
+  async updateFcmToken(userId: string, fcmToken: string, adminUser: User): Promise<User> {
+    const user = await this.findOneById(userId, adminUser);
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    user.fcmToken = fcmToken;
+    return this.usersRepository.save(user);
+  }
+
 
   async updateUser(
     userId: string,
