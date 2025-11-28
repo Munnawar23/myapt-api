@@ -5,7 +5,7 @@ import { Permission } from './database/entities/permission.entity';
 import { RbacModule } from './rbac/rbac.module';
 import { UsersModule } from './users/users.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { APP_GUARD } from '@nestjs/core';
@@ -48,41 +48,45 @@ import { StaffLog } from './database/entities/staff-log.entity';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: '35.202.54.187',
-      port: 5432,
-      username: 'postgres',
-      password: '3102aaC:C805MCnL',
-      database: 'apartment_db',
-      entities: [
-        User,
-        Role,
-        Permission,
-        Flat,
-        FamilyMember,
-        Amenity,
-        AmenityBooking,
-        Service,
-        ServiceRequest,
-        Service,
-        ServiceRequest,
-        GatePass,
-        Delivery,
-        Invoice,
-        Payment,
-        Feedback,
-        Announcement,
-        ParkingZone,
-        ParkingSlot,
-        ParkingRequest,
-        AmenitySlot,
-        Society,
-        VisitorLog,
-        Staff,
-        StaffLog,
-      ],
-      synchronize: true,
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (config: ConfigService) => ({
+        type: 'postgres',
+        host: config.get<string>('DB_HOST'),
+        port: config.get<number>('DB_PORT'),
+        username: config.get<string>('DB_USERNAME'),
+        password: config.get<string>('DB_PASSWORD'),
+        database: config.get<string>('DB_NAME'),
+        entities: [
+          User,
+          Role,
+          Permission,
+          Flat,
+          FamilyMember,
+          Amenity,
+          AmenityBooking,
+          Service,
+          ServiceRequest,
+          Service,
+          ServiceRequest,
+          GatePass,
+          Delivery,
+          Invoice,
+          Payment,
+          Feedback,
+          Announcement,
+          ParkingZone,
+          ParkingSlot,
+          ParkingRequest,
+          AmenitySlot,
+          Society,
+          VisitorLog,
+          Staff,
+          StaffLog,
+        ],
+        synchronize: true,
+      }),
+      inject: [ConfigService],
     }),
     RbacModule,
     UsersModule,
@@ -110,4 +114,4 @@ import { StaffLog } from './database/entities/staff-log.entity';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }
