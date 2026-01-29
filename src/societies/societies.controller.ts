@@ -1,5 +1,5 @@
 // ... imports
-import { Controller, Post, UseGuards, Body, Get } from '@nestjs/common';
+import { Controller, Post, UseGuards, Body, Get, Param } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -19,7 +19,7 @@ import { SocietiesService } from './societies.service';
 @ApiTags('Societies')
 @Controller('societies')
 export class SocietiesController {
-  constructor(private readonly societiesService: SocietiesService) {}
+  constructor(private readonly societiesService: SocietiesService) { }
 
   @Post()
   @UseGuards(PermissionGuard)
@@ -52,5 +52,16 @@ export class SocietiesController {
   findAll() {
     // Point to the new, clearly named public method
     return this.societiesService.findAllPublic();
+  }
+
+  @Public()
+  @Get(':id')
+  @ApiOperation({ summary: 'Get a specific society by ID' })
+  @ApiOkResponse({
+    description: 'Returns the details of a specific society.',
+    type: Society,
+  })
+  findOne(@Param('id') id: string) {
+    return this.societiesService.findOneById(id);
   }
 }

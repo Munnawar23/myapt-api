@@ -1,0 +1,11 @@
+--- Current Roles and Permissions ---
+Role: TENANT [No permissions]
+Role: SUPERADMIN [create_society, view_societies, manage_users, manage_roles]
+Role: MANAGER [No permissions]
+Role: RECEPTIONIST [No permissions]
+
+--- All Available Permissions ---
+- create_society
+- view_societies
+- manage_users
+- manage_roles

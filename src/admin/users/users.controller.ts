@@ -18,6 +18,7 @@ import { UsersAdminService } from './users.service';
 import { PermissionGuard } from 'src/rbac/guards/permission/permission.guard';
 import { RequirePermission } from 'src/rbac/decorators/permission.decorator';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { UserQueryDto } from './dto/user-query.dto';
 import { AdminUpdateUserDto } from './dto/admin-update-user.dto';
 import { AddFamilyMemberDto } from './dto/add-family-member.dto';
 import { CreateAdminUserDto } from './dto/create-admin-user.dto';
@@ -43,7 +44,7 @@ export class UsersAdminController {
     summary: "Get a paginated list of all users in the admin's society",
   })
   @RequirePermission('view_all_users')
-  findAll(@Query() query: PaginationQueryDto, @Request() req) {
+  findAll(@Query() query: UserQueryDto, @Request() req) {
     return this.usersService.findAll(query, req.user);
   }
 

@@ -57,6 +57,11 @@ export class UsersService {
       }
     }
 
+    if (Object.keys(updateProfileDto).length === 0) {
+      // Nothing to update, just return the profile
+      return this.getFullProfile(userId);
+    }
+
     const updateResult = await this.usersRepository.update(
       userId,
       updateProfileDto,

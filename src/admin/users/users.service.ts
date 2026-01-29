@@ -10,6 +10,7 @@ import { User, UserSocietyStatus } from 'src/database/entities/user.entity';
 import { Flat } from 'src/database/entities/flat.entity';
 import { FamilyMember } from 'src/database/entities/family-member.entity';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { UserQueryDto } from './dto/user-query.dto';
 import { PaginatedResponse } from 'src/common/dto/paginated-response.dto';
 import { AdminUpdateUserDto } from './dto/admin-update-user.dto';
 import { AddFamilyMemberDto } from './dto/add-family-member.dto';
@@ -68,16 +69,21 @@ export class UsersAdminService {
   }
 
   async findAll(
-    query: PaginationQueryDto,
+    query: UserQueryDto,
     adminUser: User,
   ): Promise<PaginatedResponse<Omit<User, 'password_hash'>>> {
     this.checkAdminSociety(adminUser);
-    const { limit, offset, search, sortBy, sortOrder } = query;
+    const { limit, offset, search, sortBy, sortOrder, societyId } = query;
+
+    // Use query.societyId if provided, otherwise fallback to admin's society_id
+    const effectiveSocietyId = societyId || adminUser.society_id;
+
     const qb = this.usersRepository
       .createQueryBuilder('user')
       .leftJoinAndSelect('user.owned_flat', 'flat')
+      .leftJoinAndSelect('user.roles', 'role')
       .where('user.society_id = :societyId', {
-        societyId: adminUser.society_id,
+        societyId: effectiveSocietyId,
       });
 
     if (search) {

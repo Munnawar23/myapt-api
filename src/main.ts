@@ -32,6 +32,13 @@ async function bootstrap() {
   SwaggerModule.setup('api-docs', app, document); // Serve Swagger UI at /api-docs
   // -----------------------------
 
-  await app.listen(3001);
+  const port = 3001;
+  await app.listen(port);
+
+  // Log server and Swagger URLs
+  console.log(`\n🚀 Application is running on: http://localhost:${port}`);
+  console.log(
+    `📚 Swagger documentation available at: http://localhost:${port}/api-docs\n`,
+  );
 }
 bootstrap();
