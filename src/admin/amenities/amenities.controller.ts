@@ -13,6 +13,7 @@ import {
 import { AmenitiesAdminService } from './amenities.service';
 import { CreateAmenityDto } from './dto/create-amenity.dto';
 import { UpdateAmenityDto } from './dto/update-amenity.dto';
+import { GenerateSlotsDto } from './dto/generate-slots.dto';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -29,7 +30,7 @@ import { RequirePermission } from 'src/rbac/decorators/permission.decorator';
 @UseGuards(PermissionGuard)
 @Controller('admin/amenities')
 export class AmenitiesAdminController {
-  constructor(private readonly amenitiesService: AmenitiesAdminService) {}
+  constructor(private readonly amenitiesService: AmenitiesAdminService) { }
 
   @Post()
   @RequirePermission('manage_amenities')
@@ -44,7 +45,7 @@ export class AmenitiesAdminController {
   }
 
   @Get()
-  @RequirePermission('manage_amenities')
+  @RequirePermission('view_amenities')
   @ApiOperation({ summary: "List all amenities for the admin's society" })
   @ApiOkResponse({ description: 'Returns a list of amenities.' })
   findAll(@Request() req) {
@@ -52,7 +53,7 @@ export class AmenitiesAdminController {
   }
 
   @Get(':id')
-  @RequirePermission('manage_amenities')
+  @RequirePermission('view_amenities')
   @ApiOperation({ summary: 'Get a single amenity by ID' })
   @ApiOkResponse({ description: 'Returns the amenity details.' })
   findOne(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
@@ -77,5 +78,40 @@ export class AmenitiesAdminController {
   @ApiOkResponse({ description: 'The amenity has been successfully deleted.' })
   remove(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
     return this.amenitiesService.remove(id, req.user);
+  }
+
+  @Post(':id/slots/generate')
+  @RequirePermission('manage_amenities')
+  @ApiOperation({ summary: 'Generate time slots for an amenity' })
+  generateSlots(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() generateDto: GenerateSlotsDto,
+    @Request() req,
+  ) {
+    return this.amenitiesService.generateSlots(id, generateDto, req.user);
+  }
+
+  @Get(':id/slots')
+  @RequirePermission('view_amenities')
+  @ApiOperation({ summary: 'Get all slots for an amenity' })
+  findAllSlots(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
+    return this.amenitiesService.findAllSlots(id, req.user);
+  }
+
+  @Put(':amenityId/slots/:slotId')
+  @RequirePermission('control_amenity_slots') // Specific permission for Receptionists and Admins
+  @ApiOperation({ summary: 'Enable or disable a specific booking slot' })
+  updateSlot(
+    @Param('amenityId', ParseUUIDPipe) amenityId: string,
+    @Param('slotId', ParseUUIDPipe) slotId: string,
+    @Body('is_active') isActive: boolean,
+    @Request() req,
+  ) {
+    return this.amenitiesService.toggleSlotAvailability(
+      amenityId,
+      slotId,
+      isActive,
+      req.user,
+    );
   }
 }

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateAnnouncementDto {
   @ApiProperty({
@@ -18,4 +18,21 @@ export class CreateAnnouncementDto {
   @IsString()
   @IsNotEmpty()
   content: string;
+
+  @ApiProperty({
+    description: 'Whether to publish the announcement immediately.',
+    default: false,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  is_published?: boolean;
+
+  @ApiProperty({
+    description: 'Society ID (Super Admin only)',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  society_id?: string;
 }

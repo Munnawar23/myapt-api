@@ -13,7 +13,7 @@ export class PermissionGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
     private rbacService: RbacService,
-  ) {}
+  ) { }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     // 1. Get the required permissions from the decorator

@@ -9,7 +9,6 @@ import { AmenitiesAdminModule } from './amenities/amenities.module';
 import { ServicesAdminModule } from './services/services.module';
 import { UsersAdminModule } from './users/users.module';
 import { ParkingAdminModule } from './parking/parking.module';
-import { SlotsAdminModule } from './slots/slots.module';
 import { SocietiesAdminModule } from './societies/societies.module';
 import { GatePassesAdminModule } from './gate-passes/gate-passes.module';
 import { StaffAdminModule } from './staff/staff.module';
@@ -27,11 +26,10 @@ import { DeliveriesAdminModule } from './deliveries/deliveries.module';
     ServicesAdminModule,
     UsersAdminModule,
     ParkingAdminModule,
-    SlotsAdminModule,
     SocietiesAdminModule,
     GatePassesAdminModule,
     StaffAdminModule,
     DeliveriesAdminModule,
   ],
 })
-export class AdminModule {}
+export class AdminModule { }

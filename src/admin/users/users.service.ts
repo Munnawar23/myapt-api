@@ -9,7 +9,6 @@ import { Repository, In } from 'typeorm';
 import { User, UserSocietyStatus } from 'src/database/entities/user.entity';
 import { Flat } from 'src/database/entities/flat.entity';
 import { FamilyMember } from 'src/database/entities/family-member.entity';
-import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 import { UserQueryDto } from './dto/user-query.dto';
 import { PaginatedResponse } from 'src/common/dto/paginated-response.dto';
 import { AdminUpdateUserDto } from './dto/admin-update-user.dto';
@@ -29,7 +28,8 @@ export class UsersAdminService {
   ) { }
 
   private checkAdminSociety(adminUser: User) {
-    if (!adminUser.society_id) {
+    const isSuperAdmin = adminUser.roles.some(role => role.role_name === 'SUPERADMIN');
+    if (!isSuperAdmin && !adminUser.society_id) {
       throw new ForbiddenException('You are not associated with any society.');
     }
   }
@@ -38,8 +38,37 @@ export class UsersAdminService {
     createDto: CreateAdminUserDto,
     adminUser: User,
   ): Promise<Omit<User, 'password_hash'>> {
-    this.checkAdminSociety(adminUser);
     const { email, password, roleIds, ...rest } = createDto;
+    const isSuperAdmin = adminUser.roles.some(role => role.role_name === 'SUPERADMIN');
+
+    // 1. Determine the society ID
+    let targetSocietyId = adminUser.society_id;
+
+    if (createDto.society_id) {
+      // If NOT Super Admin, they can ONLY use their own society_id
+      if (!isSuperAdmin && adminUser.society_id && createDto.society_id !== adminUser.society_id) {
+        throw new ForbiddenException('Managers cannot create users for other societies.');
+      }
+      targetSocietyId = createDto.society_id;
+    }
+
+    if (!targetSocietyId) {
+      throw new ForbiddenException('Society ID is required to create a user.');
+    }
+
+    // 2. Validate Roles
+    if (!isSuperAdmin) {
+      // Managers can only create TENANT or RECEPTIONIST
+      const allowedRoles = await this.roleRepository.find({
+        where: { role_name: In(['TENANT', 'RECEPTIONIST']) }
+      });
+      const allowedIds = allowedRoles.map(r => r.role_id);
+
+      const hasInvalidRole = roleIds.some(id => !allowedIds.includes(id));
+      if (hasInvalidRole || roleIds.length === 0) {
+        throw new ForbiddenException('Managers can only create Tenants or Receptionists.');
+      }
+    }
 
     const existingUser = await this.usersRepository.findOneBy({ email });
     if (existingUser) {
@@ -59,8 +88,8 @@ export class UsersAdminService {
       email,
       password_hash,
       roles,
-      society_id: adminUser.society_id, // Assign user to the admin's society
-      society_status: UserSocietyStatus.APPROVED, // Admins create pre-approved users
+      society_id: targetSocietyId,
+      society_status: UserSocietyStatus.APPROVED,
     });
 
     const savedUser = await this.usersRepository.save(newUser);
@@ -74,17 +103,21 @@ export class UsersAdminService {
   ): Promise<PaginatedResponse<Omit<User, 'password_hash'>>> {
     this.checkAdminSociety(adminUser);
     const { limit, offset, search, sortBy, sortOrder, societyId } = query;
+    const isSuperAdmin = adminUser.roles.some(role => role.role_name === 'SUPERADMIN');
 
-    // Use query.societyId if provided, otherwise fallback to admin's society_id
     const effectiveSocietyId = societyId || adminUser.society_id;
 
     const qb = this.usersRepository
       .createQueryBuilder('user')
       .leftJoinAndSelect('user.owned_flat', 'flat')
-      .leftJoinAndSelect('user.roles', 'role')
-      .where('user.society_id = :societyId', {
+      .leftJoinAndSelect('user.roles', 'role');
+
+    // If NOT Super Admin, always filter by society.
+    if (!isSuperAdmin || effectiveSocietyId) {
+      qb.where('user.society_id = :societyId', {
         societyId: effectiveSocietyId,
       });
+    }
 
     if (search) {
       qb.andWhere(
@@ -107,11 +140,15 @@ export class UsersAdminService {
     });
     if (!user) throw new NotFoundException(`User with ID ${userId} not found`);
 
-    this.checkAdminSociety(adminUser);
-    if (user.society_id !== adminUser.society_id) {
-      throw new ForbiddenException(
-        'You can only view users from your own society.',
-      );
+    const isSuperAdmin = adminUser.roles.some(role => role.role_name === 'SUPERADMIN');
+
+    if (!isSuperAdmin) {
+      this.checkAdminSociety(adminUser);
+      if (user.society_id !== adminUser.society_id) {
+        throw new ForbiddenException(
+          'You can only view users from your own society.',
+        );
+      }
     }
 
     delete user.password_hash;
@@ -120,22 +157,16 @@ export class UsersAdminService {
 
   async updateFcmToken(userId: string, fcmToken: string, adminUser: User): Promise<User> {
     const user = await this.findOneById(userId, adminUser);
-
-    if (!user) {
-      throw new NotFoundException(`User with ID ${userId} not found`);
-    }
-
     user.fcmToken = fcmToken;
     return this.usersRepository.save(user);
   }
-
 
   async updateUser(
     userId: string,
     updateUserDto: AdminUpdateUserDto,
     adminUser: User,
   ): Promise<User> {
-    await this.findOneById(userId, adminUser); // This performs the existence and society check
+    await this.findOneById(userId, adminUser);
 
     const user = await this.usersRepository.preload({
       id: userId,
@@ -161,7 +192,7 @@ export class UsersAdminService {
     addMemberDto: AddFamilyMemberDto,
     adminUser: User,
   ): Promise<FamilyMember> {
-    const user = await this.findOneById(userId, adminUser); // Security check
+    const user = await this.findOneById(userId, adminUser);
     if (!user.owned_flat)
       throw new NotFoundException(
         `User with ID ${userId} does not have a linked flat.`,
@@ -175,9 +206,6 @@ export class UsersAdminService {
   }
 
   async removeFamilyMember(memberId: string): Promise<void> {
-    // This is tricky to scope by society. An admin should have the right to remove any family member
-    // as long as they can view the primary user. The check is implicitly handled by requiring a valid user first.
-    // For now, this remains as-is, assuming it's called after validating access to the user.
     const result = await this.familyMembersRepository.delete(memberId);
     if (result.affected === 0)
       throw new NotFoundException(
@@ -186,7 +214,7 @@ export class UsersAdminService {
   }
 
   async removeUser(userId: string, adminUser: User): Promise<void> {
-    await this.findOneById(userId, adminUser); // Security check
+    await this.findOneById(userId, adminUser);
     const result = await this.usersRepository.delete(userId);
     if (result.affected === 0)
       throw new NotFoundException(`User with ID ${userId} not found.`);

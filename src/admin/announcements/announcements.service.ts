@@ -8,15 +8,20 @@ import { Announcement } from 'src/database/entities/announcement.entity';
 import { User } from 'src/database/entities/user.entity';
 import { Repository } from 'typeorm';
 import { CreateAnnouncementDto } from './dto/create-announcement.dto';
+import { RbacService } from 'src/rbac/rbac.service';
 
 @Injectable()
 export class AnnouncementsAdminService {
   constructor(
     @InjectRepository(Announcement)
     private announcementsRepository: Repository<Announcement>,
-  ) {}
+    private readonly rbacService: RbacService,
+  ) { }
 
-  private checkAdminSociety(adminUser: User) {
+  private async checkAdminSociety(adminUser: User) {
+    if (adminUser.roles.some((role) => role.role_name === 'SUPERADMIN')) {
+      return; // Super Admin can access all
+    }
     if (!adminUser.society_id) {
       throw new ForbiddenException('You are not associated with any society.');
     }
@@ -26,17 +31,66 @@ export class AnnouncementsAdminService {
     createDto: CreateAnnouncementDto,
     adminUser: User,
   ): Promise<Announcement> {
-    this.checkAdminSociety(adminUser);
+    const permissions = await this.rbacService.getUserPermissions(adminUser.id);
+    const canManage = permissions.has('manage_announcements');
+    const isSuperAdmin = adminUser.roles.some((r) => r.role_name === 'SUPERADMIN');
+
+    let societyId = adminUser.society_id;
+    let isPublished = false; // Default to draft
+
+    if (canManage) {
+      // Manager or Super Admin
+      isPublished = createDto.is_published ?? false;
+
+      if (isSuperAdmin && createDto.society_id) {
+        societyId = createDto.society_id;
+      }
+    } else {
+      // Receptionist (Draft only)
+      isPublished = false;
+    }
+
+    if (!societyId) {
+      // Should not happen for Manager/Receptionist due to checkAdminSociety or login logic, 
+      // but for SuperAdmin creating without society_id?
+      // If SuperAdmin and no society_id provided, what to do? 
+      // For now, require society_id if not present on user.
+      if (isSuperAdmin && !createDto.society_id) {
+        throw new ForbiddenException('Society ID is required for Super Admin creation.');
+      }
+      if (!isSuperAdmin && !societyId) {
+        throw new ForbiddenException('You are not associated with any society.');
+      }
+    }
 
     const announcement = this.announcementsRepository.create({
       ...createDto,
-      society_id: adminUser.society_id,
+      is_published: isPublished,
+      society_id: societyId,
     });
     return this.announcementsRepository.save(announcement);
   }
 
-  async findAll(adminUser: User): Promise<Announcement[]> {
-    this.checkAdminSociety(adminUser);
+  async findAll(
+    adminUser: User,
+    societyId?: string,
+  ): Promise<Announcement[]> {
+    await this.checkAdminSociety(adminUser);
+    const isSuperAdmin = adminUser.roles.some(
+      (r) => r.role_name === 'SUPERADMIN',
+    );
+
+    if (isSuperAdmin) {
+      const where: any = {};
+      if (societyId) {
+        where.society_id = societyId;
+      }
+      return this.announcementsRepository.find({
+        where,
+        order: { createdAt: 'DESC' },
+      });
+    }
+
     return this.announcementsRepository.find({
       where: { society_id: adminUser.society_id },
       order: { createdAt: 'DESC' },
@@ -44,19 +98,47 @@ export class AnnouncementsAdminService {
   }
 
   async remove(id: string, adminUser: User): Promise<void> {
-    this.checkAdminSociety(adminUser);
+    await this.checkAdminSociety(adminUser);
     const announcement = await this.announcementsRepository.findOneBy({ id });
 
     if (!announcement) {
       throw new NotFoundException(`Announcement with ID ${id} not found.`);
     }
 
-    if (announcement.society_id !== adminUser.society_id) {
+    const isSuperAdmin = adminUser.roles.some((r) => r.role_name === 'SUPERADMIN');
+    // If not super admin, must match society
+    if (!isSuperAdmin && announcement.society_id !== adminUser.society_id) {
       throw new ForbiddenException(
         'You do not have permission to delete this announcement.',
       );
     }
 
+    // Check permissions strictly? Controller handles `manage_announcements` for delete.
+    // So we are good.
+
     await this.announcementsRepository.remove(announcement);
+  }
+
+  async publish(id: string, adminUser: User): Promise<Announcement> {
+    await this.checkAdminSociety(adminUser);
+    const announcement = await this.announcementsRepository.findOneBy({ id });
+
+    if (!announcement) {
+      throw new NotFoundException(`Announcement with ID ${id} not found.`);
+    }
+
+    const isSuperAdmin = adminUser.roles.some(
+      (role) => role.role_name === 'SUPERADMIN',
+    );
+
+    // If not super admin, must match society
+    if (!isSuperAdmin && announcement.society_id !== adminUser.society_id) {
+      throw new ForbiddenException(
+        'You do not have permission to publish this announcement.',
+      );
+    }
+
+    announcement.is_published = true;
+    return this.announcementsRepository.save(announcement);
   }
 }

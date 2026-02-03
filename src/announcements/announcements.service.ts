@@ -9,7 +9,7 @@ export class AnnouncementsService {
   constructor(
     @InjectRepository(Announcement)
     private readonly announcementRepository: Repository<Announcement>,
-  ) {}
+  ) { }
 
   async findAllForUser(user: User): Promise<Announcement[]> {
     if (!user.society_id) {
@@ -25,6 +25,7 @@ export class AnnouncementsService {
     return this.announcementRepository.find({
       where: {
         society_id: user.society_id,
+        is_published: true,
       },
       order: {
         createdAt: 'DESC',

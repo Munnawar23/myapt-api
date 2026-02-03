@@ -105,6 +105,7 @@ import { StaffLog } from './database/entities/staff-log.entity';
     SocietiesModule,
     SocietyAdminModule,
     AnnouncementsModule,
+    AnnouncementsAdminModule,
     StaffModule,
   ],
   providers: [

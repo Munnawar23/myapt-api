@@ -33,10 +33,11 @@ export class CreateAmenityDto {
   tax_percent: number;
 
   // --- CORRECTED PROPERTY NAME ---
-  @ApiProperty({ example: 5, description: 'Service fee for this amenity' })
+  @ApiProperty({ example: 5, description: 'Service fee for this amenity', required: false, default: 0 })
   @IsNumber()
+  @IsOptional()
   @Min(0)
-  service_fee_amount: number;
+  service_fee?: number;
 
   @ApiProperty({
     example: 'Additional notes for this amenity',
@@ -60,7 +61,7 @@ export class CreateAmenityDto {
   @ApiProperty({ example: 60, description: 'Duration of each slot in minutes' })
   @IsInt()
   @Min(1)
-  slot_duration: number;
+  slot_duration_minutes: number;
 
   // --- CORRECTED PROPERTY NAME ---
   @ApiProperty({
@@ -70,4 +71,9 @@ export class CreateAmenityDto {
   @IsInt()
   @Min(1)
   slot_capacity: number;
+
+  @ApiProperty({ example: 'uuid-of-society', description: 'Society ID (optional, will be overwritten by admin context)', required: false })
+  @IsString()
+  @IsOptional()
+  society_id?: string;
 }

@@ -26,6 +26,9 @@ export class Announcement {
   @JoinColumn({ name: 'society_id' })
   society: Society;
 
+  @Column({ default: false })
+  is_published: boolean;
+
   @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt: Date;
 }

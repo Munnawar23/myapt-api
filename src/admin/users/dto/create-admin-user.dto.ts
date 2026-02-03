@@ -6,6 +6,8 @@ import {
   MinLength,
   IsArray,
   IsInt,
+  IsOptional,
+  IsUUID,
 } from 'class-validator';
 
 export class CreateAdminUserDto {
@@ -35,4 +37,13 @@ export class CreateAdminUserDto {
   @IsArray()
   @IsInt({ each: true })
   roleIds: number[];
+
+  @ApiProperty({
+    description: 'The UUID of the society to assign this user to (Super Admin only).',
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    required: false,
+  })
+  @IsOptional()
+  @IsUUID()
+  society_id?: string;
 }
