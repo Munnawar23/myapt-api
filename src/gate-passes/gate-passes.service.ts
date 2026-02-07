@@ -23,7 +23,7 @@ export class GatePassesService {
     // We need the UserRepository to find the user's flat
     @InjectRepository(User)
     private usersRepository: Repository<User>,
-  ) {}
+  ) { }
 
   private generatePassCode(): string {
     const alphabet = '0123456789';
@@ -31,7 +31,7 @@ export class GatePassesService {
     return nanoid();
   }
 
-  // Refactored 'create' method for tenants
+  // Refactored 'create' method for users
   async create(
     userId: string,
     createDto: CreateGatePassDto,
@@ -88,7 +88,7 @@ export class GatePassesService {
       .getMany();
   }
 
-  // Method for a tenant to approve or deny a pass
+  // Method for a user to approve or deny a pass
   async respond(
     passId: string,
     userId: string,
@@ -124,8 +124,8 @@ export class GatePassesService {
     // Update the status based on the action
     if (action === PassAction.APPROVE) {
       pass.status = GatePassStatus.ACTIVE;
-      // As per our logic, the first tenant to approve makes the pass active.
-      // We also update the requester to be the tenant who approved it.
+      // As per our logic, the first user to approve makes the pass active.
+      // We also update the requester to be the user who approved it.
       pass.requester_id = userId;
     } else {
       // action === PassAction.DENY

@@ -17,48 +17,21 @@ async function bootstrap() {
 
     console.log('Seeding Database...');
 
-    // 1. Ensure Society Exists
-    let society = await societyRepository.findOneBy({ name: 'My Apartment Complex' });
-    if (!society) {
-        console.log('Creating default Society...');
-        society = societyRepository.create({
-            name: 'My Apartment Complex',
-            address: '123 Developer Lane, Code City',
-        });
-        society = await societyRepository.save(society);
-        console.log(`Society Created: ${society.id}`);
-    } else {
-        console.log(`Using existing Society: ${society.id}`);
-    }
-
     // 2. Define Users to Create
     const usersToCreate = [
         {
-            email: 'superadmin@example.com',
-            full_name: 'Super Admin User',
+            email: 'rajat@myapt.com',
+            full_name: 'Super Admin',
             role: 'SUPERADMIN',
-        },
-        {
-            email: 'manager@example.com',
-            full_name: 'Manager User',
-            role: 'MANAGER',
-        },
-        {
-            email: 'receptionist@example.com',
-            full_name: 'Receptionist User',
-            role: 'RECEPTIONIST',
-        },
-        {
-            email: 'tenant@example.com',
-            full_name: 'Tenant User',
-            role: 'TENANT',
-        },
+            password: 'Myapt@123'
+        }
     ];
 
-    const salt = await bcrypt.genSalt();
-    const passwordHash = await bcrypt.hash('123456', salt);
-
     for (const userData of usersToCreate) {
+        const salt = await bcrypt.genSalt();
+        const passwordHash = await bcrypt.hash(userData.password, salt);
+
+
         const existingUser = await userRepository.findOne({
             where: { email: userData.email },
             relations: ['roles'],
@@ -81,13 +54,12 @@ async function bootstrap() {
             full_name: userData.full_name,
             password_hash: passwordHash,
             phone_number: '1234567890',
-            society: society,
-            society_status: UserSocietyStatus.APPROVED, // Auto-approve
             roles: [role],
         });
 
+
         await userRepository.save(newUser);
-        console.log(`Created ${userData.full_name} (${userData.role})`);
+        console.log(`Created ${userData.full_name} (${userData.role}) with password: ${userData.password}`);
     }
 
     console.log('Seeding Complete!');
@@ -95,3 +67,4 @@ async function bootstrap() {
 }
 
 bootstrap();
+

@@ -84,11 +84,12 @@ async function bootstrap() {
 
     // RECEPTIONIST
     if (receptionistRole) {
-        const receptionistPerms = ['view_all_users', 'view_amenities', 'control_amenity_slots', 'view_all_bookings', 'create_announcement_draft'];
+        const receptionistPerms = ['create_user', 'view_all_users', 'view_amenities', 'control_amenity_slots', 'view_all_bookings', 'create_announcement_draft'];
         for (const pname of receptionistPerms) {
             await assignPerm(receptionistRole.role_id, pname);
         }
     }
+
 
     await app.close();
 }

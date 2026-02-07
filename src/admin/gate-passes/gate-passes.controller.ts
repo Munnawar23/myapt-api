@@ -21,11 +21,11 @@ import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 @ApiBearerAuth()
 @UseGuards(PermissionGuard)
 export class GatePassesAdminController {
-  constructor(private readonly gatePassesService: GatePassesAdminService) {}
+  constructor(private readonly gatePassesService: GatePassesAdminService) { }
 
   @Post()
   @ApiOperation({
-    summary: 'Guard generates a guest pass that requires tenant approval',
+    summary: 'Guard generates a guest pass that requires user approval',
   })
   @RequirePermission('create_guard_gate_pass') // A specific permission for this action
   createForApproval(@Req() req, @Body() createDto: GuardCreateGatePassDto) {

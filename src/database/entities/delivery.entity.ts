@@ -10,19 +10,20 @@ import {
 import { User } from './user.entity';
 
 export enum DeliveryStatus {
-  EXPECTED = 'EXPECTED', // Tenant has pre-registered this delivery
-  PENDING_APPROVAL = 'PENDING_APPROVAL', // Guard created, awaiting tenant action
-  APPROVED = 'APPROVED', // Tenant approved, allowed entry
-  DENIED = 'DENIED', // Tenant denied entry
+  EXPECTED = 'EXPECTED', // User has pre-registered this delivery
+  PENDING_APPROVAL = 'PENDING_APPROVAL', // Guard created, awaiting user action
+  APPROVED = 'APPROVED', // User approved, allowed entry
+  DENIED = 'DENIED', // User denied entry
   COMPLETED = 'COMPLETED', // Parcel delivered/handed over
-  CANCELED = 'CANCELED', // Canceled by tenant
+  CANCELED = 'CANCELED', // Canceled by user
 }
 
 // To track who created the record
 export enum DeliveryCreator {
-  TENANT = 'TENANT',
+  USER = 'USER',
   GUARD = 'GUARD',
 }
+
 
 @Entity('deliveries')
 export class Delivery {

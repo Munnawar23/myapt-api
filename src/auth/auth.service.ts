@@ -24,7 +24,7 @@ export class AuthService {
 
     @InjectRepository(Role) private roleRepository: Repository<Role>,
     @InjectRepository(Society) private societyRepository: Repository<Society>,
-  ) {}
+  ) { }
 
   async register(
     registerDto: RegisterDto,
@@ -54,14 +54,15 @@ export class AuthService {
       const salt = await bcrypt.genSalt();
       const password_hash = await bcrypt.hash(registerDto.password, salt);
 
-      // Find the default 'TENANT' role
-      const tenantRole = await this.roleRepository.findOneBy({
-        role_name: 'TENANT',
+
+      // Find the default 'USER' role
+      const userRole = await this.roleRepository.findOneBy({
+        role_name: 'USER',
       });
-      if (!tenantRole) {
+      if (!userRole) {
         // This is a critical setup error. In a real app, you'd seed this role.
         throw new Error(
-          'Default "TENANT" role not found. Please seed the database.',
+          'Default "USER" role not found. Please seed the database.',
         );
       }
 
@@ -71,7 +72,8 @@ export class AuthService {
         email: registerDto.email,
         password_hash,
         phone_number: registerDto.phone_number,
-        roles: [tenantRole], // Assign the default TENANT role
+        roles: [userRole], // Assign the default USER role
+
         society_id: registerDto.societyId, // <-- Set society_id
         society_status: UserSocietyStatus.PENDING, // <-- Set status to PENDING
       });

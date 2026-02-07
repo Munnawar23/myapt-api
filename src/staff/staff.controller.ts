@@ -16,14 +16,14 @@ import { StaffService } from './staff.service';
 import { CreateStaffDto } from './dto/create-staff.dto';
 import { UpdateStaffDto } from './dto/update-staff.dto';
 
-@ApiTags('Staff (Tenant)')
+@ApiTags('Staff (User)')
 @ApiBearerAuth()
 @Controller('staff')
 export class StaffController {
-  constructor(private readonly staffService: StaffService) {}
+  constructor(private readonly staffService: StaffService) { }
 
   @Post()
-  @ApiOperation({ summary: "Add a new staff member for the tenant's flat" })
+  @ApiOperation({ summary: "Add a new staff member for the user's flat" })
   create(@Req() req, @Body() createDto: CreateStaffDto) {
     const userId = req.user.id;
     return this.staffService.create(userId, createDto);
@@ -31,8 +31,9 @@ export class StaffController {
 
   @Get()
   @ApiOperation({
-    summary: "Get a list of all staff members for the tenant's flat",
+    summary: "Get a list of all staff members for the user's flat",
   })
+
   findAll(@Req() req) {
     const userId = req.user.id;
     return this.staffService.findAllForUser(userId);

@@ -69,8 +69,9 @@ export class DeliveriesService {
       ...createDto,
       resident_id: userId,
       status: DeliveryStatus.EXPECTED, // Pre-registered deliveries are 'EXPECTED'
-      created_by: DeliveryCreator.TENANT, // Mark that the tenant created this
+      created_by: DeliveryCreator.USER, // Mark that the user created this
     });
+
 
     return this.deliveriesRepository.save(newDelivery);
   }

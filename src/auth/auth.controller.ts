@@ -9,11 +9,11 @@ import { RegisterDto } from './dto/register.dto';
 @ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService) { }
 
   @Public()
   @Post('register')
-  @ApiOperation({ summary: 'Register a new tenant and link their flat' })
+  @ApiOperation({ summary: 'Register a new user and link their flat' })
   register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }

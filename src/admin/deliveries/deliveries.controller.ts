@@ -18,7 +18,7 @@ export class DeliveriesAdminController {
 
   @Post()
   @ApiOperation({
-    summary: 'Guard registers a delivery that requires tenant approval',
+    summary: 'Guard registers a delivery that requires user approval',
   })
   @RequirePermission('create_guard_delivery') // New permission
   createForApproval(@Body() createDto: GuardCreateDeliveryDto) {

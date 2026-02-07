@@ -1,37 +1,58 @@
 
+
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../../app.module';
-import { RbacService } from '../../rbac/rbac.service';
-import { CreateRoleDto } from '../../rbac/dto/create-role.dto';
+import { Role } from '../entities/role.entity';
+import { DataSource } from 'typeorm';
 
 async function bootstrap() {
     const app = await NestFactory.createApplicationContext(AppModule);
-    const rbacService = app.get(RbacService);
+    const dataSource = app.get(DataSource);
+    const roleRepository = dataSource.getRepository(Role);
 
-    const roles = ['SUPERADMIN', 'MANAGER', 'RECEPTIONIST', 'TENANT'];
+    console.log('Resetting Database (Truncating all tables)...');
 
-    for (const roleName of roles) {
+    // List all main tables. CASCADE will handle child tables like flats, bookings, etc.
+    const tables = [
+        'users',
+        'societies',
+        'roles',
+        'permissions',
+        'amenities',
+        'announcements',
+        'deliveries',
+        'gate_passes',
+        'invoices',
+        'parking_zones',
+        'payments',
+        'services',
+        'staff',
+        'visitor_logs'
+    ];
+
+    for (const table of tables) {
         try {
-            // Check if role exists (we need to inspect the service to see if there is a 'findByName' or just iterate)
-            // The RbacService doesn't have findByName exposed directly, but it has createRole which creates a new one.
-            // We can use the repository directly if we inject it, OR we can rely on unique constraint failure or check all roles.
-            // Let's verify existing roles first.
-
-            const allRoles = await rbacService.findAllRoles();
-            const exists = allRoles.find(r => r.role_name === roleName);
-
-            if (!exists) {
-                console.log(`Creating role: ${roleName}`);
-                await rbacService.createRole({ role_name: roleName } as CreateRoleDto);
-            } else {
-                console.log(`Role already exists: ${roleName}`);
-            }
+            await dataSource.query(`TRUNCATE TABLE "${table}" RESTART IDENTITY CASCADE`);
         } catch (error) {
-            console.error(`Error processing role ${roleName}:`, error);
+            console.warn(`Could not truncate table ${table}: ${error.message}`);
         }
     }
 
+    const roles = ['SUPERADMIN', 'MANAGER', 'RECEPTIONIST', 'USER'];
+
+    for (const roleName of roles) {
+        try {
+            console.log(`Creating role: ${roleName}`);
+            const newRole = roleRepository.create({ role_name: roleName });
+            await roleRepository.save(newRole);
+        } catch (error) {
+            console.error(`Error creating role ${roleName}:`, error);
+        }
+    }
+
+    console.log('Roles seeded successfully.');
     await app.close();
 }
 
 bootstrap();
+

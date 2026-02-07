@@ -39,45 +39,86 @@ export class UsersAdminService {
     adminUser: User,
   ): Promise<Omit<User, 'password_hash'>> {
     const { email, password, roleIds, ...rest } = createDto;
-    const isSuperAdmin = adminUser.roles.some(role => role.role_name === 'SUPERADMIN');
 
-    // 1. Determine the society ID
+    // 1. Identify the roles of the creator
+    const isAdminSuper = adminUser.roles.some(
+      (role) => role.role_name === 'SUPERADMIN',
+    );
+    const isAdminManager = adminUser.roles.some(
+      (role) => role.role_name === 'MANAGER',
+    );
+    const isAdminReceptionist = adminUser.roles.some(
+      (role) => role.role_name === 'RECEPTIONIST',
+    );
+
+    // 2. Fetch the target roles to validate them
+    const targetRoles = await this.roleRepository.findBy({
+      role_id: In(roleIds),
+    });
+    if (targetRoles.length !== roleIds.length) {
+      throw new NotFoundException('One or more roles not found');
+    }
+
+    // 3. Absolute Rule: No one can create a SUPERADMIN
+    if (targetRoles.some((role) => role.role_name === 'SUPERADMIN')) {
+      throw new ForbiddenException(
+        'Creation of Super Admin users is not allowed.',
+      );
+    }
+
+    // 4. Role Hierarchy Check
+    if (isAdminSuper) {
+      // Super Admin can create MANAGER, RECEPTIONIST, USER (any role except SUPERADMIN)
+    } else if (isAdminManager) {
+      // Manager can create RECEPTIONIST, USER
+      const invalidRoles = targetRoles.filter(
+        (role) => !['RECEPTIONIST', 'USER'].includes(role.role_name),
+      );
+      if (invalidRoles.length > 0) {
+        throw new ForbiddenException(
+          'Managers can only create Receptionists or General Users.',
+        );
+      }
+    } else if (isAdminReceptionist) {
+      // Receptionist can create only USER
+      const invalidRoles = targetRoles.filter(
+        (role) => role.role_name !== 'USER',
+      );
+      if (invalidRoles.length > 0) {
+        throw new ForbiddenException(
+          'Receptionists can only create General Users.',
+        );
+      }
+    } else {
+      throw new ForbiddenException(
+        'You do not have permission to create users.',
+      );
+    }
+
+    // 5. Society Restriction Check
     let targetSocietyId = adminUser.society_id;
 
     if (createDto.society_id) {
       // If NOT Super Admin, they can ONLY use their own society_id
-      if (!isSuperAdmin && adminUser.society_id && createDto.society_id !== adminUser.society_id) {
-        throw new ForbiddenException('Managers cannot create users for other societies.');
+      if (
+        !isAdminSuper &&
+        adminUser.society_id &&
+        createDto.society_id !== adminUser.society_id
+      ) {
+        throw new ForbiddenException(
+          'You can only create users for your own society.',
+        );
       }
       targetSocietyId = createDto.society_id;
     }
 
-    if (!targetSocietyId) {
+    if (!targetSocietyId && !isAdminSuper) {
       throw new ForbiddenException('Society ID is required to create a user.');
-    }
-
-    // 2. Validate Roles
-    if (!isSuperAdmin) {
-      // Managers can only create TENANT or RECEPTIONIST
-      const allowedRoles = await this.roleRepository.find({
-        where: { role_name: In(['TENANT', 'RECEPTIONIST']) }
-      });
-      const allowedIds = allowedRoles.map(r => r.role_id);
-
-      const hasInvalidRole = roleIds.some(id => !allowedIds.includes(id));
-      if (hasInvalidRole || roleIds.length === 0) {
-        throw new ForbiddenException('Managers can only create Tenants or Receptionists.');
-      }
     }
 
     const existingUser = await this.usersRepository.findOneBy({ email });
     if (existingUser) {
       throw new ConflictException('User with this email already exists');
-    }
-
-    const roles = await this.roleRepository.findBy({ role_id: In(roleIds) });
-    if (roles.length !== roleIds.length) {
-      throw new NotFoundException('One or more roles not found');
     }
 
     const salt = await bcrypt.genSalt();
@@ -87,7 +128,7 @@ export class UsersAdminService {
       ...rest,
       email,
       password_hash,
-      roles,
+      roles: targetRoles,
       society_id: targetSocietyId,
       society_status: UserSocietyStatus.APPROVED,
     });
@@ -96,6 +137,7 @@ export class UsersAdminService {
     const { password_hash: _, ...result } = savedUser;
     return result;
   }
+
 
   async findAll(
     query: UserQueryDto,

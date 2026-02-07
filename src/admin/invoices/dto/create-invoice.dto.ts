@@ -10,7 +10,7 @@ import {
 
 export class CreateInvoiceDto {
   @ApiProperty({
-    description: 'The ID of the user (tenant) to be invoiced.',
+    description: 'The ID of the user to be invoiced.',
     example: 'a1b2c3d4-e5f6-7890-1234-567890abcdef',
   })
   @IsUUID()
