@@ -95,7 +95,7 @@ import { StaffModule } from './staff/staff.module';
         ],
 
         // ✅ KEEP TRUE for first cloud sync
-        synchronize: true,
+        synchronize: false,
       }),
       inject: [ConfigService],
     }),
