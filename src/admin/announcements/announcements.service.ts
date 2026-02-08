@@ -31,36 +31,23 @@ export class AnnouncementsAdminService {
     createDto: CreateAnnouncementDto,
     adminUser: User,
   ): Promise<Announcement> {
-    const permissions = await this.rbacService.getUserPermissions(adminUser.id);
-    const canManage = permissions.has('manage_announcements');
     const isSuperAdmin = adminUser.roles.some((r) => r.role_name === 'SUPERADMIN');
 
+    // Allow everyone (Receptionist included) to set is_published directly
+    const isPublished = createDto.is_published ?? false;
+
     let societyId = adminUser.society_id;
-    let isPublished = false; // Default to draft
-
-    if (canManage) {
-      // Manager or Super Admin
-      isPublished = createDto.is_published ?? false;
-
-      if (isSuperAdmin && createDto.society_id) {
-        societyId = createDto.society_id;
-      }
-    } else {
-      // Receptionist (Draft only)
-      isPublished = false;
+    if (isSuperAdmin && createDto.society_id) {
+      societyId = createDto.society_id;
     }
 
-    if (!societyId) {
-      // Should not happen for Manager/Receptionist due to checkAdminSociety or login logic, 
-      // but for SuperAdmin creating without society_id?
-      // If SuperAdmin and no society_id provided, what to do? 
-      // For now, require society_id if not present on user.
-      if (isSuperAdmin && !createDto.society_id) {
-        throw new ForbiddenException('Society ID is required for Super Admin creation.');
-      }
-      if (!isSuperAdmin && !societyId) {
-        throw new ForbiddenException('You are not associated with any society.');
-      }
+
+    if (isSuperAdmin && !societyId) {
+      throw new ForbiddenException('Society ID is required for Super Admin creation.');
+    }
+
+    if (!isSuperAdmin && !societyId) {
+      throw new ForbiddenException('You are not associated with any society.');
     }
 
     const announcement = this.announcementsRepository.create({
@@ -70,6 +57,7 @@ export class AnnouncementsAdminService {
     });
     return this.announcementsRepository.save(announcement);
   }
+
 
   async findAll(
     adminUser: User,

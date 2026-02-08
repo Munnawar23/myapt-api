@@ -64,7 +64,8 @@ export class AnnouncementsAdminController {
   @ApiOperation({ summary: 'Delete an announcement' })
   @ApiOkResponse({ description: 'Announcement deleted successfully.' })
   @ApiForbiddenResponse({ description: 'Permission denied.' })
-  @RequirePermission('create_announcement_draft')
+  @RequirePermission('manage_announcements')
+
   async remove(@Param('id', ParseUUIDPipe) id: string, @Request() req) {
     await this.announcementsService.remove(id, req.user);
   }
