@@ -116,6 +116,44 @@ export class UsersAdminService {
       throw new ForbiddenException('Society ID is required to create a user.');
     }
 
+    // 6. Role Limit Check (Max 5 Managers, 1 Receptionist per society)
+    if (targetSocietyId) {
+      if (targetRoles.some((role) => role.role_name === 'MANAGER')) {
+        const managerCount = await this.usersRepository
+          .createQueryBuilder('user')
+          .innerJoin('user.roles', 'role')
+          .where('user.society_id = :societyId', {
+            societyId: targetSocietyId,
+          })
+          .andWhere('role.role_name = :roleName', { roleName: 'MANAGER' })
+          .getCount();
+
+        if (managerCount >= 5) {
+          throw new ForbiddenException(
+            'Maximum limit of 5 Managers for this society reached.',
+          );
+        }
+      }
+
+      if (targetRoles.some((role) => role.role_name === 'RECEPTIONIST')) {
+        const receptionistCount = await this.usersRepository
+          .createQueryBuilder('user')
+          .innerJoin('user.roles', 'role')
+          .where('user.society_id = :societyId', {
+            societyId: targetSocietyId,
+          })
+          .andWhere('role.role_name = :roleName', { roleName: 'RECEPTIONIST' })
+          .getCount();
+
+        if (receptionistCount >= 1) {
+          throw new ForbiddenException(
+            'This society already has a Receptionist. Only one is allowed.',
+          );
+        }
+      }
+    }
+
+
     const existingUser = await this.usersRepository.findOneBy({ email });
     if (existingUser) {
       throw new ConflictException('User with this email already exists');

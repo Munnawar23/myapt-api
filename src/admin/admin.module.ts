@@ -32,4 +32,5 @@ import { DeliveriesAdminModule } from './deliveries/deliveries.module';
     DeliveriesAdminModule,
   ],
 })
+
 export class AdminModule { }

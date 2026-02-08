@@ -28,7 +28,9 @@ async function bootstrap() {
         { name: 'manage_society_members', description: 'Allows approving/rejecting new society members' },
         { name: 'manage_announcements', description: 'Full control over announcements (create, edit, delete, publish)' },
         { name: 'create_announcement_draft', description: 'Allows creating draft announcements only' },
+        { name: 'manage_mc', description: 'Allows adding/removing users from Management Committee' },
     ];
+
 
     for (const perm of permissions) {
         try {
@@ -76,11 +78,12 @@ async function bootstrap() {
 
     // MANAGER
     if (managerRole) {
-        const managerPerms = ['create_user', 'delete_user', 'manage_users', 'view_all_users', 'update_user', 'manage_flats', 'manage_amenities', 'view_amenities', 'control_amenity_slots', 'view_all_bookings', 'manage_society_members', 'manage_announcements', 'create_announcement_draft'];
+        const managerPerms = ['create_user', 'delete_user', 'manage_users', 'view_all_users', 'update_user', 'manage_flats', 'manage_amenities', 'view_amenities', 'control_amenity_slots', 'view_all_bookings', 'manage_society_members', 'manage_announcements', 'create_announcement_draft', 'manage_mc'];
         for (const pname of managerPerms) {
             await assignPerm(managerRole.role_id, pname);
         }
     }
+
 
     // RECEPTIONIST
     if (receptionistRole) {

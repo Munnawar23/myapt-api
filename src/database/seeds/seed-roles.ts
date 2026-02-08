@@ -38,7 +38,8 @@ async function bootstrap() {
         }
     }
 
-    const roles = ['SUPERADMIN', 'MANAGER', 'RECEPTIONIST', 'USER'];
+    const roles = ['SUPERADMIN', 'MANAGER', 'RECEPTIONIST', 'USER', 'MC'];
+
 
     for (const roleName of roles) {
         try {
