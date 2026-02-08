@@ -22,7 +22,7 @@ export class DashboardService {
     private serviceRequestsRepository: Repository<ServiceRequest>,
     @InjectRepository(Feedback)
     private feedbackRepository: Repository<Feedback>,
-  ) {}
+  ) { }
 
   async getStats(adminUser: User) {
     if (!adminUser.society_id) {
@@ -54,8 +54,9 @@ export class DashboardService {
     const openServiceRequests = await this.serviceRequestsRepository.count({
       where: {
         status: Not(
-          In([ServiceRequestStatus.COMPLETED, ServiceRequestStatus.CANCELED]),
+          In([ServiceRequestStatus.RESOLVED, ServiceRequestStatus.CANCELED]),
         ),
+
         user: {
           society_id: societyId, // Deep relation query
         },

@@ -18,7 +18,7 @@ export class ServicesAdminService {
   constructor(
     @InjectRepository(Service)
     private servicesRepository: Repository<Service>,
-  ) {}
+  ) { }
 
   private checkAdminSociety(adminUser: User) {
     if (!adminUser.society_id) {
@@ -27,38 +27,60 @@ export class ServicesAdminService {
   }
 
   async create(createDto: CreateServiceDto, adminUser: User): Promise<Service> {
-    this.checkAdminSociety(adminUser);
+    const isSuperAdmin = adminUser.roles.some((r) => r.role_name === 'SUPERADMIN');
+
+    let societyId = adminUser.society_id;
+    if (isSuperAdmin && createDto.society_id) {
+      societyId = createDto.society_id;
+    }
+
+    if (!societyId) {
+      throw new ForbiddenException('Society ID is required.');
+    }
 
     const existing = await this.servicesRepository.findOne({
-      where: { name: createDto.name, society_id: adminUser.society_id },
+      where: { name: createDto.name, society_id: societyId },
     });
 
     if (existing) {
       throw new ConflictException(
-        `A service with the name "${createDto.name}" already exists in your society.`,
+        `A service with the name "${createDto.name}" already exists in this society.`,
       );
     }
 
     const newService = this.servicesRepository.create({
-      ...createDto,
-      society_id: adminUser.society_id,
-    });
+      ...(createDto as any),
+      society_id: societyId,
+    }) as any as Service;
+
     return this.servicesRepository.save(newService);
+
   }
 
+
   async findAll(
-    query: PaginationQueryDto,
+    query: any,
     adminUser: User,
   ): Promise<PaginatedResponse<Service>> {
-    this.checkAdminSociety(adminUser);
+    const isSuperAdmin = adminUser.roles.some((r) => r.role_name === 'SUPERADMIN');
 
-    const { limit, offset, search, sortBy, sortOrder } = query;
+    let { limit, offset, search, sortBy, sortOrder, society_id } = query;
     const qb = this.servicesRepository.createQueryBuilder('service');
 
-    // Filter by the admin's society first
-    qb.where('service.society_id = :societyId', {
-      societyId: adminUser.society_id,
-    });
+    // Default sortBy for services should be 'name' not 'full_name'
+    if (sortBy === 'full_name') {
+      sortBy = 'name';
+    }
+
+
+    if (!isSuperAdmin) {
+      this.checkAdminSociety(adminUser);
+      qb.where('service.society_id = :societyId', {
+        societyId: adminUser.society_id,
+      });
+    } else if (society_id) {
+      qb.where('service.society_id = :societyId', { societyId: society_id });
+    }
 
     if (search) {
       qb.andWhere('service.name ILIKE :search', { search: `%${search}%` });
@@ -71,20 +93,27 @@ export class ServicesAdminService {
     return new PaginatedResponse(data, total, limit, query.page);
   }
 
+
   async findOne(id: string, adminUser: User): Promise<Service> {
-    this.checkAdminSociety(adminUser);
+    const isSuperAdmin = adminUser.roles.some((r) => r.role_name === 'SUPERADMIN');
+
     const service = await this.servicesRepository.findOneBy({ id });
     if (!service) {
       throw new NotFoundException(`Service with ID ${id} not found.`);
     }
-    // Security check: Ensure the service belongs to the admin's society
-    if (service.society_id !== adminUser.society_id) {
-      throw new ForbiddenException(
-        'You do not have permission to access this service.',
-      );
+
+    if (!isSuperAdmin) {
+      this.checkAdminSociety(adminUser);
+      // Security check: Ensure the service belongs to the admin's society
+      if (service.society_id !== adminUser.society_id) {
+        throw new ForbiddenException(
+          'You do not have permission to access this service.',
+        );
+      }
     }
     return service;
   }
+
 
   async update(
     id: string,

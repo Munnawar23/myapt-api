@@ -29,7 +29,20 @@ async function bootstrap() {
         { name: 'manage_announcements', description: 'Full control over announcements (create, edit, delete, publish)' },
         { name: 'create_announcement_draft', description: 'Allows creating draft announcements only' },
         { name: 'manage_mc', description: 'Allows adding/removing users from Management Committee' },
+        { name: 'view_all_complaints', description: 'Allows viewing all complaints/service requests' },
+        { name: 'create_complaint', description: 'Allows creating complaints on behalf of residents' },
+        { name: 'assign_complaint', description: 'Allows assigning staff/technicians to complaints' },
+        { name: 'update_complaint_status', description: 'Allows updating the status of complaints' },
+        { name: 'set_complaint_priority', description: 'Allows setting priority levels for complaints' },
+        { name: 'manage_complaint_categories', description: 'Allows managing complaint categories/services' },
+        { name: 'create_service', description: 'Allows creating new services/categories' },
+        { name: 'view_services', description: 'Allows viewing services/categories' },
+        { name: 'update_service', description: 'Allows updating services/categories' },
+        { name: 'delete_service', description: 'Allows deleting services/categories' },
+        { name: 'delete_complaint', description: 'Allows deleting complaints permanently' },
     ];
+
+
 
 
     for (const perm of permissions) {
@@ -78,7 +91,20 @@ async function bootstrap() {
 
     // MANAGER
     if (managerRole) {
-        const managerPerms = ['create_user', 'delete_user', 'manage_users', 'view_all_users', 'update_user', 'manage_flats', 'manage_amenities', 'view_amenities', 'control_amenity_slots', 'view_all_bookings', 'manage_society_members', 'manage_announcements', 'create_announcement_draft', 'manage_mc'];
+        const managerPerms = [
+            'create_user', 'delete_user', 'manage_users', 'view_all_users', 'update_user',
+            'manage_flats', 'manage_amenities', 'view_amenities', 'control_amenity_slots',
+            'view_all_bookings', 'manage_society_members', 'manage_announcements',
+            'create_announcement_draft', 'manage_mc', 'view_all_complaints',
+            'create_complaint', 'assign_complaint', 'update_complaint_status',
+            'set_complaint_priority',
+            'create_service',
+            'view_services',
+            'update_service',
+            'delete_service',
+            'delete_complaint',
+        ];
+
         for (const pname of managerPerms) {
             await assignPerm(managerRole.role_id, pname);
         }
@@ -87,11 +113,18 @@ async function bootstrap() {
 
     // RECEPTIONIST
     if (receptionistRole) {
-        const receptionistPerms = ['create_user', 'view_all_users', 'view_amenities', 'control_amenity_slots', 'view_all_bookings', 'create_announcement_draft'];
+        const receptionistPerms = [
+            'create_user', 'view_all_users', 'view_amenities', 'control_amenity_slots',
+            'view_all_bookings', 'create_announcement_draft', 'view_all_complaints',
+            'create_complaint', 'assign_complaint', 'update_complaint_status',
+            'view_services',
+        ];
+
         for (const pname of receptionistPerms) {
             await assignPerm(receptionistRole.role_id, pname);
         }
     }
+
 
 
     await app.close();
