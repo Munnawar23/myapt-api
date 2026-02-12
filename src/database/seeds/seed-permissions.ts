@@ -40,10 +40,11 @@ async function bootstrap() {
         { name: 'update_service', description: 'Allows updating services/categories' },
         { name: 'delete_service', description: 'Allows deleting services/categories' },
         { name: 'delete_complaint', description: 'Allows deleting complaints permanently' },
+        { name: 'view_gate_pass_reports', description: 'Allows viewing gate pass reports and stats' },
+        { name: 'view_all_gate_passes', description: 'Allows viewing history and list of all gate passes' },
+        { name: 'create_guard_gate_pass', description: 'Allows creating a gate pass at the gate' },
+        { name: 'lookup_gate_pass', description: 'Allows looking up a gate pass by code' },
     ];
-
-
-
 
     for (const perm of permissions) {
         try {
@@ -82,10 +83,14 @@ async function bootstrap() {
         }
     };
 
-    // SUPERADMIN gets all
+    // SUPERADMIN
     if (superAdminRole) {
+        // Superadmin gets everything EXCEPT operational gate pass permissions as per request
+        const restrictedPerms = ['create_guard_gate_pass', 'lookup_gate_pass'];
         for (const perm of allPermissions) {
-            await assignPerm(superAdminRole.role_id, perm.permission_name);
+            if (!restrictedPerms.includes(perm.permission_name)) {
+                await assignPerm(superAdminRole.role_id, perm.permission_name);
+            }
         }
     }
 
@@ -103,13 +108,14 @@ async function bootstrap() {
             'update_service',
             'delete_service',
             'delete_complaint',
+            'view_gate_pass_reports',
+            'view_all_gate_passes'
         ];
 
         for (const pname of managerPerms) {
             await assignPerm(managerRole.role_id, pname);
         }
     }
-
 
     // RECEPTIONIST
     if (receptionistRole) {
@@ -118,14 +124,15 @@ async function bootstrap() {
             'view_all_bookings', 'create_announcement_draft', 'view_all_complaints',
             'create_complaint', 'assign_complaint', 'update_complaint_status',
             'view_services',
+            'create_guard_gate_pass',
+            'lookup_gate_pass',
+            'view_all_gate_passes'
         ];
 
         for (const pname of receptionistPerms) {
             await assignPerm(receptionistRole.role_id, pname);
         }
     }
-
-
 
     await app.close();
 }

@@ -5,11 +5,12 @@ import {
   GatePassStatus,
 } from 'src/database/entities/gate-pass.entity';
 import { Flat } from 'src/database/entities/flat.entity';
-import { In, Repository } from 'typeorm';
+import { In, Repository, Between } from 'typeorm';
 import { GuardCreateGatePassDto } from './dto/guard-create-gate-pass.dto';
 import { customAlphabet } from 'nanoid';
 import { PaginatedResponse } from 'src/common/dto/paginated-response.dto';
 import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { User } from 'src/database/entities/user.entity';
 
 @Injectable()
 export class GatePassesAdminService {
@@ -18,8 +19,9 @@ export class GatePassesAdminService {
     private gatePassesRepository: Repository<GatePass>,
     @InjectRepository(Flat)
     private flatsRepository: Repository<Flat>,
-    // The Visitor repository is no longer needed here
-  ) {}
+    @InjectRepository(User)
+    private usersRepository: Repository<User>,
+  ) { }
 
   private generatePassCode(): string {
     const alphabet = '0123456789';
@@ -31,6 +33,11 @@ export class GatePassesAdminService {
     guardId: string,
     createDto: GuardCreateGatePassDto,
   ): Promise<GatePass> {
+    const guard = await this.usersRepository.findOne({
+      where: { id: guardId },
+    });
+    if (!guard) throw new NotFoundException('Guard not found.');
+
     const destinationFlats = await this.flatsRepository.find({
       where: { id: In(createDto.destination_flat_ids) },
     });
@@ -42,6 +49,7 @@ export class GatePassesAdminService {
 
     const newGatePass = this.gatePassesRepository.create({
       requester_id: guardId,
+      society_id: guard.society_id,
       pass_code: this.generatePassCode(),
       visitor_name: createDto.visitor_name,
       visitor_contact_number: createDto.visitor_contact_number,
@@ -66,8 +74,8 @@ export class GatePassesAdminService {
     return gatePass;
   }
 
-  // REVISED: This method now finds Gate Passes, not Visitors
   async findAllGatePasses(
+    queryBy: { societyId?: string; status?: string[] },
     query: PaginationQueryDto,
   ): Promise<PaginatedResponse<GatePass>> {
     const { limit, offset, search, sortBy, sortOrder } = query;
@@ -75,9 +83,20 @@ export class GatePassesAdminService {
     const queryBuilder =
       this.gatePassesRepository.createQueryBuilder('gatepass');
 
+    if (queryBy.societyId) {
+      queryBuilder.andWhere('gatepass.society_id = :societyId', {
+        societyId: queryBy.societyId,
+      });
+    }
+
+    if (queryBy.status && queryBy.status.length > 0) {
+      queryBuilder.andWhere('gatepass.status IN (:...status)', {
+        status: queryBy.status,
+      });
+    }
+
     if (search) {
-      // Allow searching by visitor name or mobile number, which are now in the gatepass table
-      queryBuilder.where(
+      queryBuilder.andWhere(
         '(gatepass.visitor_name ILIKE :search OR gatepass.visitor_contact_number ILIKE :search)',
         {
           search: `%${search}%`,
@@ -86,11 +105,81 @@ export class GatePassesAdminService {
     }
 
     const total = await queryBuilder.getCount();
-    const sortColumn = `gatepass.${sortBy}`;
+
+    // Fix: GatePass entity doesn't have 'full_name'. 
+    // If sortBy is 'full_name' (default), use 'createdAt'.
+    const effectiveSortBy = sortBy === 'full_name' ? 'createdAt' : sortBy;
+    const sortColumn = `gatepass.${effectiveSortBy}`;
+
     queryBuilder.orderBy(sortColumn, sortOrder);
     queryBuilder.offset(offset).limit(limit);
 
     const data = await queryBuilder.getMany();
     return new PaginatedResponse(data, total, limit, query.page);
+  }
+
+  async getGatePassStats(
+    societyId?: string,
+    period: 'daily' | 'weekly' | 'monthly' = 'daily',
+  ) {
+    const now = new Date();
+    let startDate: Date;
+
+    if (period === 'daily') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (period === 'weekly') {
+      // Last 7 days
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - 7);
+    } else {
+      // Monthly: start of current month
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    }
+
+    const baseWhere: any = {
+      createdAt: Between(startDate, now),
+    };
+    if (societyId) baseWhere.society_id = societyId;
+
+    const totalCreated = await this.gatePassesRepository.count({
+      where: baseWhere,
+    });
+
+    const activePasses = await this.gatePassesRepository.count({
+      where: { ...baseWhere, status: GatePassStatus.ACTIVE },
+    });
+
+    const pendingApprovals = await this.gatePassesRepository.count({
+      where: { ...baseWhere, status: GatePassStatus.PENDING_APPROVAL },
+    });
+
+    const visitorTypeBreakdown = await this.gatePassesRepository
+      .createQueryBuilder('gp')
+      .select('gp.visitor_type', 'type')
+      .addSelect('COUNT(*)', 'count')
+      .where('gp.createdAt BETWEEN :start AND :end', {
+        start: startDate,
+        end: now,
+      })
+      .andWhere(societyId ? 'gp.society_id = :societyId' : '1=1', {
+        societyId,
+      })
+      .groupBy('gp.visitor_type')
+      .getRawMany();
+
+    return {
+      period,
+      totalCreated,
+      activePasses,
+      pendingApprovals,
+      visitorTypeBreakdown,
+    };
+  }
+
+  async updateStatus(id: string, status: GatePassStatus): Promise<GatePass> {
+    const pass = await this.gatePassesRepository.findOneBy({ id });
+    if (!pass) throw new NotFoundException(`Gate Pass with ID ${id} not found.`);
+    pass.status = status;
+    return this.gatePassesRepository.save(pass);
   }
 }

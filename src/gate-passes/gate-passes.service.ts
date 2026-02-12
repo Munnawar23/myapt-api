@@ -50,6 +50,7 @@ export class GatePassesService {
 
     const newGatePass = this.gatePassesRepository.create({
       requester_id: userId,
+      society_id: requester.society_id,
       pass_code: this.generatePassCode(),
       // Visitor details are now part of the DTO and this entity
       visitor_name: createDto.visitor_name,

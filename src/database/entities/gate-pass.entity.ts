@@ -13,12 +13,15 @@ import {
 import { User } from './user.entity';
 import { Flat } from './flat.entity';
 import { VisitorLog } from './visitor-log.entity';
+import { Society } from './society.entity';
 
 // ... (VisitorType and GatePassStatus enums remain the same) ...
 export enum VisitorType {
   GUEST = 'GUEST',
   VENDOR = 'VENDOR',
   WORKER = 'WORKER',
+  TECHNICIAN = 'TECHNICIAN',
+  DRIVER = 'DRIVER',
 }
 export enum GatePassStatus {
   PENDING_APPROVAL = 'PENDING_APPROVAL',
@@ -41,14 +44,17 @@ export class GatePass {
   @Column({ type: 'uuid', nullable: true })
   requester_id: string;
 
-  // --- VISITOR DETAILS MOVED BACK HERE ---
+  @Column({ type: 'uuid', nullable: true })
+  society_id: string;
+
+  // --- VISITOR DETAILS ---
   @Column()
   visitor_name: string;
 
-  @Index() // Add an index for faster searching by mobile number
+  @Index()
   @Column()
   visitor_contact_number: string;
-  // ------------------------------------
+  // -----------------------
 
   @Column({ type: 'enum', enum: VisitorType })
   visitor_type: VisitorType;
@@ -73,7 +79,9 @@ export class GatePass {
   @JoinColumn({ name: 'requester_id' })
   requester: User;
 
-  // --- REMOVED LINK TO VISITOR ENTITY ---
+  @ManyToOne(() => Society, { onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'society_id' })
+  society: Society;
 
   @ManyToMany(() => Flat, { cascade: true })
   @JoinTable({
