@@ -63,10 +63,10 @@ import { StaffModule } from './staff/staff.module';
         // 🔥 Pull from .env
         url: config.get<string>('DATABASE_URL'),
 
-        // REQUIRED for cloud postgres
-        ssl: {
+        // REQUIRED for cloud postgres (NEON), but usually not for local
+        ssl: config.get<string>('DATABASE_URL')?.includes('neon.tech') ? {
           rejectUnauthorized: false,
-        },
+        } : false,
 
         entities: [
           User,

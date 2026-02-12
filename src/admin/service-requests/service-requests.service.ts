@@ -140,17 +140,18 @@ export class ServiceRequestsAdminService {
 
     // Role-based restrictions for Receptionist
     if (isReceptionist) {
-      if (updateDto.status === ServiceRequestStatus.CLOSED) {
-        throw new ForbiddenException(
-          'Receptionists cannot close complaints permanently.',
-        );
-      }
       if (updateDto.priority) {
         throw new ForbiddenException('Receptionists cannot change priority.');
       }
     }
 
-    if (updateDto.status) request.status = updateDto.status;
+    if (updateDto.status) {
+      request.status = updateDto.status;
+      // Automatically set end_time when resolved
+      if (updateDto.status === ServiceRequestStatus.RESOLVED) {
+        request.end_time = new Date();
+      }
+    }
     if (updateDto.priority) request.priority = updateDto.priority;
     if (updateDto.admin_comments)
       request.admin_comments = updateDto.admin_comments;
