@@ -126,7 +126,8 @@ async function bootstrap() {
             'view_services',
             'create_guard_gate_pass',
             'lookup_gate_pass',
-            'view_all_gate_passes'
+            'view_all_gate_passes',
+            'view_gate_pass_reports'
         ];
 
         for (const pname of receptionistPerms) {

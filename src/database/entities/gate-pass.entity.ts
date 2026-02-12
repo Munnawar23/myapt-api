@@ -26,6 +26,7 @@ export enum VisitorType {
 export enum GatePassStatus {
   PENDING_APPROVAL = 'PENDING_APPROVAL',
   ACTIVE = 'ACTIVE',
+  ALLOWED_ENTRY = 'ALLOWED_ENTRY',
   USED = 'USED',
   EXPIRED = 'EXPIRED',
   CANCELED = 'CANCELED',

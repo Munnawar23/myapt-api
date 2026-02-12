@@ -17,7 +17,7 @@ import { PermissionGuard } from 'src/rbac/guards/permission/permission.guard';
 import { RequirePermission } from 'src/rbac/decorators/permission.decorator';
 import { GatePassesAdminService } from './gate-passes.service';
 import { GuardCreateGatePassDto } from './dto/guard-create-gate-pass.dto';
-import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
+import { AdminGatePassFilterDto } from './dto/admin-gate-pass-filter.dto';
 
 @ApiTags('Admin - Gate Pass Management')
 @Controller('admin/gate-passes')
@@ -25,16 +25,6 @@ import { PaginationQueryDto } from 'src/common/dto/pagination-query.dto';
 @UseGuards(PermissionGuard)
 export class GatePassesAdminController {
   constructor(private readonly gatePassesService: GatePassesAdminService) { }
-
-  @Post()
-  @ApiOperation({
-    summary: 'Guard generates a guest pass that requires user approval',
-  })
-  @RequirePermission('create_guard_gate_pass')
-  createForApproval(@Req() req, @Body() createDto: GuardCreateGatePassDto) {
-    const guardId = req.user.id;
-    return this.gatePassesService.createForApproval(guardId, createDto);
-  }
 
   @Get('stats')
   @ApiOperation({ summary: 'Get gate pass statistics for reports' })
@@ -62,17 +52,15 @@ export class GatePassesAdminController {
   @RequirePermission('view_all_gate_passes')
   findAllGatePasses(
     @Req() req,
-    @Query() query: PaginationQueryDto,
-    @Query('status') status?: string, // e.g., "ACTIVE,PENDING_APPROVAL"
-    @Query('societyId') societyId?: string,
+    @Query() filterDto: AdminGatePassFilterDto,
   ) {
     const isSuperAdmin = req.user.roles.some((r) => r.role_name === 'SUPERADMIN');
-    const targetSocietyId = isSuperAdmin ? societyId : req.user.society_id;
-    const statusArray = status ? status.split(',') : [];
+    const targetSocietyId = isSuperAdmin ? filterDto.societyId : req.user.society_id;
+    const statusArray = filterDto.status ? filterDto.status.split(',') : [];
 
     return this.gatePassesService.findAllGatePasses(
       { societyId: targetSocietyId, status: statusArray },
-      query,
+      filterDto,
     );
   }
 
